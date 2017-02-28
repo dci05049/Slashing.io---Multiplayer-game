@@ -2,6 +2,7 @@ var gameProperties = {
     screenWidth: 1340,
     screenHeight: 620,
 };
+var socket; 
 
 var gamegraphicsassets = {
 	arrow_url: 'client/assets/sprites/arrow.png',
@@ -14,6 +15,23 @@ var gamegraphicsassets = {
 	ailen_name: 'ailen',
 	
 };
+
+var remote_player = function (index, game, player, startx, starty, startangle) {
+	this.game = game; 
+	this.player = player; 
+	
+	this.player = game.add.sprite(startx, starty, 'arrow');
+	this.player.anchor.setTo(0.5, 0.5)
+	
+	this.player.name = index.toString(); 
+	
+	
+}
+
+remote_player.prototype.update = function () {
+	
+}
+
 
 //  Dimensions
 var spriteWidth = 16;
@@ -29,8 +47,14 @@ var canvasZoom = 128;
 var ailens; 
 var weapon; 
 
-var players = []; 
- 
+var enemies = []; 
+
+function player (sprite, id, x, y) {
+	this.player_sprite = sprite; 
+	this.id = id; 
+	this.x = x; 
+	this.y = y; 
+}
 		
  
 var mainState = function(game){
@@ -55,61 +79,109 @@ function createDrawingArea() {
 
 }
 
+function onMoveplayer (data) {
+	var movePlayer = findplayerbyid (data.id); 
+	if (!movePlayer) {
+		console.log('Player not found: ', data.id)
+		return
+	}
+	
+	movePlayer.player.x = data.x; 
+	movePlayer.player.y = data.y; 
+	
+}
 
+
+function onSocketConnected () {
+	console.log('Connected to socket server');
+	
+	// Send local player data to the game server
+	socket.emit('new_player', { x: 0, y: 0});
+}
+
+// search through enemies list to find the right object of the id; 
+function findplayerbyid (id) {
+	for (var i = 0; i < enemies.length; i++) {
+		if (enemies[i].player.name == id) {
+			return enemies[i]; 
+		}
+	}
+}
 
 
 mainState.prototype = {
-
+	
     preload: function () {
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
     },
  
     create: function () {
-	
+		socket = io.connect();
+		
+		// when the socket connects, call the onsocketconnected and send its information to the server 
+		socket.on('connect', onSocketConnected); 
+		
+		//listen for the broadcast.emit from the server for new player; 
+		socket.on('new_player', function(info) {
+			enemies.push(new remote_player(info.id, game, player, info.x, info.y)); 
+			console.log(info); 
+		}); 
+		
+		socket.on('move_player', onMoveplayer); 
+		
 		
 		game.world.setBounds(0, 0, 1920, 1920);
 		game.stage.backgroundColor = '#0072bc';
 		createDrawingArea();
 		
-		sprite = game.add.sprite(200, 100, 'arrow');
-		sprite.anchor.setTo(0.5, 0.5);
-		sprite.scale.setTo(1, 1);
+		player = game.add.sprite(200, 100, 'arrow');
+		player.anchor.setTo(0.5, 0.5);
+		player.scale.setTo(1, 1);
 		
 		
 		game.physics.startSystem(Phaser.Physics.ARCADE);
-		game.physics.enable(sprite, Phaser.Physics.ARCADE);
+		game.physics.enable(player, Phaser.Physics.ARCADE);
 		
-		sprite.body.allowRotation = false;
+		player.body.allowRotation = false;
+		
+		
+		// keep track of new players added; 
+		
 		socket.on('heartbeat', function (data) {
-			for (var i = 0; i < players.length - 1; i ++) {
-				if (
-			}
+			
+			/*for (var i in data) {
+				if (data[i].id != socket.id) {
+					var player_sprite = data[i].id;
+					player_sprite.x = data[i].x; 
+					player_sprite.y = data[i].y; 
+				}
+				
+			}*/
+			//console.log(player_lst); 
 		}); 
 		
 		//camera follow
-		game.camera.follow(sprite, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);
+		game.camera.follow(player, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);
     },
  
     update: function () {
 		
-		if (game.physics.arcade.distanceToPointer(sprite) <= 50) {
-			sprite.rotation = game.physics.arcade.moveToPointer(sprite, 400, game.input.activePointer, 500);
+		if (game.physics.arcade.distanceToPointer(player) <= 50) {
+			player.rotation = game.physics.arcade.moveToPointer(player, 400, game.input.activePointer, 500);
 		} else {
-			sprite.rotation = game.physics.arcade.moveToPointer(sprite, 400, game.input.activePointer);
+			player.rotation = game.physics.arcade.moveToPointer(player, 400, game.input.activePointer);
 		}
 		
 		
-		// keep track of the current positions 
-		var data = {
-			x: sprite.x,
-			y: sprite.y
-		}
-		socket.emit('update', data); 
+		// emit message of the position of the player  
+		socket.emit('move_player', {x: player.x, y: player.y, angle: player.angle}); 
+		
+			
     },
 	
 		
 	render: function () {
-		game.debug.text("Distance to pointer: " + game.physics.arcade.distanceToPointer(sprite), 32, 32);
+		game.debug.text("Distance to pointer: " + game.physics.arcade.distanceToPointer(player), 32, 32);
 	}
 	
 };
