@@ -24,6 +24,7 @@ var Player = function (id) {
 	return self; 
 }
 
+
 /*
 function Players (id, x, y) {
 	this.id = id; 
@@ -42,35 +43,62 @@ function heartbeat () {
 
 }
 
-var Player = function (startX, startY) {
+var Player = function (startX, startY, startangle) {
 	this.x = startX; 
 	this.y = startY; 
+	this.angle = startangle; 
 }
 
-
+// call this function when new player enters the game 
 function onNewplayer (data) {
-	var newPlayer = new Player(data.x, data.y);
+	var newPlayer = new Player(data.x, data.y, data.angle);
 	newPlayer.id = this.id;	
 	
 	var current_info = {
 		id: newPlayer.id, 
 		x: newPlayer.x,
-		y: newPlayer.y
+		y: newPlayer.y,
+		angle: newPlayer.angle
 	}; 
 	this.broadcast.emit('new_player', current_info);
 	
 	for (i = 0; i < player_lst.length; i++) {
 		existingPlayer = player_lst[i]
-		this.emit('new_player', {id: existingPlayer.id, x: existingPlayer.x, y: existingPlayer.y});
+		this.emit('new_player', {id: existingPlayer.id, x: existingPlayer.x, y: existingPlayer.y, angle: existingPlayer.angle});
 	}
 	
 	player_lst.push(newPlayer); 
 }
 
+function onPlayerAttack (data) {
+	/*
+	var attacking = find_playerid(data.player_id); 
+	var attacked = find_playerid(data.enemy_id); 
+
+	
+	player_lst.splice(player_lst.indexOf(attacked), 1); */
+	console.log('player attack');
+	this.broadcast.to(data.enemy_id).emit('damaged', {id: data.enemy_id}); 
+}
+
+function onDamaged (data) {
+	this.broadcast.emit('remove_player', {id: this.id}); 
+		console.log ('working'); 
+}
+
+function onKilled (data) {
+	var removePlayer = find_playerid(this.id); 
+	console.log('killed'); 
+	player_lst.splice(player_lst.indexOf(removePlayer), 1); 
+	this.broadcast.emit('remove_player', {id: this.id}); 
+}
+
+
+// find player by the id 
 function find_playerid(id) {
-	console.log(player_lst.length); 
+
 	for (var i = 0; i < player_lst.length; i++) {
-		console.log('player id in lst',  player_lst[i].id);
+
 		if (player_lst[i].id == id) {
 			return player_lst[i]; 
 		}
@@ -79,6 +107,18 @@ function find_playerid(id) {
 	return false; 
 }
 
+
+// socket cliend has disconnected 
+function onClientdisconnect() {
+	var removePlayer = find_playerid(this.id); 
+	
+	player_lst.splice(player_lst.indexOf(removePlayer), 1); 
+	
+	//broadcast to all clients the removed player; 
+	this.broadcast.emit('remove_player', {id: this.id}); 
+}
+
+// when the player connected to socket move, send a message to all other clietns to update the position. 
 function onMoveplayer (data) {
 	var movePlayer = find_playerid(this.id); 
 	
@@ -88,19 +128,34 @@ function onMoveplayer (data) {
 
 	movePlayer.x = data.x; 
 	movePlayer.y = data.y; 
+	movePlayer.angle = data.angle; 
 	
-	this.broadcast.emit('move_player', {id: movePlayer.id, x: movePlayer.x, y: movePlayer.y}); 
+	this.broadcast.emit('move_player', {id: movePlayer.id, x: movePlayer.x, y: movePlayer.y, angle: movePlayer.angle}); 
 }
 
 
 io.sockets.on('connection', function(socket){
-    console.log("New player has connected: " + socket.id);
 	
 	// listen if there is a new player; 
 	socket.on('new_player', onNewplayer);
+	
 	// listen if the player moves; 
 	socket.on('move_player', onMoveplayer); 
 	
+	// listen for disconnection; 
+	socket.on('disconnect', onClientdisconnect); 
+	
+	// listen for attacks
+	socket.on('player_attack', onPlayerAttack); 
+	
+	//listen for damaged 
+	socket.on('damaged', onDamaged); 
+	
+	//listen if the player is killed
+	socket.on('killed', onKilled); 
+	
+	// listen for player damaged; 
+	//socket.on('player_attack', onPlayerAttack); 
 	
 	Socket_List[socket.id] = socket; 
 	
@@ -108,45 +163,4 @@ io.sockets.on('connection', function(socket){
 	player_lst[socket.id] = player; 
 	
 	
-	/*
-	socket.on('update', function(player) {
-		console.log(socket.id, player.x, player.y); 
-		var playing; 
-		for (var i in player_lst) {
-			if (socket.id == player_lst[i].id) {
-				playing = player_lst[i];
-			}
-		}
-		
-		playing.x = player.x;
-		playing.y = player.y; 
-	}); */
-	
-	/*
-	var new_player = new Players(socket.id, 0, 0); 
-	player_lst.push(new_player); 
-	socket.on('update', function(data) {
-		console.log(socket.id, data.x, data.y);
-		var playing; 
-		for (var i = 0; i < player_lst.length; i++) {
-			if (socket.id == player_lst[i].id) {
-				playing = player_lst[i]; 
-			}
-		}
-		
-		playing.x = data.x; 
-		playing.y = data.y; 
-		
-	});
-	*/ 
-	
- 
-    //socket.on('happy',function(data){
-    //    console.log('happy because ' + data.reason);
-    //});
-   
-   // socket.emit('serverMsg',{
-    //    msg:'hello',
-    //});
-   
 });
