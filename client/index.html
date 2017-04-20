@@ -3,16 +3,25 @@
 <head>
 	<meta charset = "UTF-8">
 	<title>Game</title> 
-	<script src="client/js/phaser.min.js"></script>
-	<script src = "client/js/capture.js"></script>
-	<script src="/socket.io/socket.io.js"></script>
-	
-	<script>
+	<link rel="stylesheet" type="text/css" href="client/css/style.css" />
 
-	</script>
-	
 </head>
 <body>
-	<div id="gameDiv"></div>; 
+	<div id="gameDiv">
+		<div id="signDiv">
+			Username: <input id = "signDiv-username" type="text" ></input>
+			<button id = "entername">Enter</button> 
+		</div>
+	</div>
 </body>
+	<script src="client/js/phaser.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src = "client/js/states/login.js"></script>
+	<script src = "client/js/player.js"></script>
+	<script src = "client/js/item.js"></script>
+	<script src = "client/js/capture.js"></script>
+	<script>
+	gameBootstrapper.init("gameDiv");
+	var socket;
+	</script>
 </html>

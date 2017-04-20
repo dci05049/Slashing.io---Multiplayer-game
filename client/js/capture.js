@@ -1,8 +1,4 @@
-var gameProperties = {
-    screenWidth: 1340,
-    screenHeight: 620,
-};
-var socket; 
+
 
 var gamegraphicsassets = {
 	arrow_url: 'client/assets/sprites/arrow.png',
@@ -11,117 +7,45 @@ var gamegraphicsassets = {
 	sword_url: 'client/assets/sprites/sword.png',
 	sword_name: 'sword', 
 	
-	bullet: 'assets/sprites/bullet.png',
-	bullet_name: 'bullet',
+	shield_url: 'client/assets/sprites/shield.png',
+	shield_name: 'shield',
 	
-	ailen_url: 'assets/sprites/ailen.png',
-	ailen_name: 'ailen',
+	scorebord_url: 'client/assets/sprites/scoreboard.png',
+	scoreboard_name: 'scoreboard',
 	
+	speedpickup_url: 'client/assets/sprites/speedpickup.png', 
+	speedpickup_name: 'speedpickup'
 };
-
-var player_properties = {
-	posX: 0,
-	posY: 0,
-	playerRot: 0, 
-	player_health : 10
-}
-
-//  Dimensions
-var spriteWidth = 16;
-var spriteHeight = 16;
-
-//  Drawing Area
-var canvas;
-var canvasBG;
-var canvasGrid;
-var canvasZoom = 128;
  
  
-var ailens; 
-var weapon; 
-
 var enemies = []; 
+var speed_pickup = []; 
+
 		
  
 var mainState = function(game){
 	
 };
 
-function movetoPointer (displayObject, speed, pointer, maxTime) {
-	
-		var bound_limit = 40;
-		var upper_bound = bound_limit;
-		var bottom_bound = game.world.height - bound_limit;
-		var left_bound = bound_limit;
-		var right_bound = game.world.width - bound_limit; 
-		var play_bound = true; 
-
-		
-        if (speed === undefined) { speed = 60; }
-        pointer = pointer || this.game.input.activePointer;
-        if (maxTime === undefined) { maxTime = 0; }
-
-        var angle = angleToPointer(displayObject, pointer);
-
-        if (maxTime > 0)
-        {
-            //  We know how many pixels we need to move, but how fast?
-            speed = distanceToPointer(displayObject, pointer) / (maxTime / 1000);
-        }
-		
-		if (displayObject.body.y < upper_bound || displayObject.body.y > bottom_bound) {
-			if (!(game.input.worldY > upper_bound && game.input.worldY < bottom_bound)) {
-				displayObject.body.velocity.y = 0;
-			} else {
-				displayObject.body.velocity.x = Math.cos(angle) * speed;
-				displayObject.body.velocity.y = Math.sin(angle) * speed;
-			}
-		} else if (displayObject.body.x < left_bound || displayObject.body.x > right_bound) {
-			if (!(game.input.worldX > left_bound && game.input.worldX < right_bound)) {
-				displayObject.body.velocity.x = 0;
-			} else {
-				displayObject.body.velocity.x = Math.cos(angle) * speed;
-				displayObject.body.velocity.y = Math.sin(angle) * speed;
-			}
-		}
-
-		displayObject.body.velocity.x = Math.cos(angle) * speed;
-		displayObject.body.velocity.y = Math.sin(angle) * speed;
-        return angle;
+function test1 () {
+	player.rotation = movetoPointer(player, 1000);
+	player_properties.player_attack = true; 
+	player_properties.player_moveX = game.input.mousePointer.worldX;
+	player_properties.player_moveY = game.input.mousePointer.worldY; 
 
 }
-
-function distanceToPointer (displayObject, pointer, world) {
-
-        if (pointer === undefined) { pointer = game.input.activePointer; }
-        if (world === undefined) { world = false; }
-
-        var dx = (world) ? displayObject.world.x - pointer.worldX : displayObject.x - pointer.worldX;
-        var dy = (world) ? displayObject.world.y - pointer.worldY : displayObject.y - pointer.worldY;
-
-        return Math.sqrt(dx * dx + dy * dy);
-
-}
-
-function angleToPointer (displayObject, pointer, world) {
-
-        if (pointer === undefined) { pointer = game.input.activePointer; }
-        if (world === undefined) { world = false; }
-
-        if (world)
-        {
-            return Math.atan2(pointer.worldY - displayObject.world.y, pointer.worldX - displayObject.world.x);
-        }
-        else
-        {
-            return Math.atan2(pointer.worldY - displayObject.y, pointer.worldX - displayObject.x);
-        }
-
-}
-
 
 
 function createDrawingArea() {
+	//  Dimensions
+	var spriteWidth = 16;
+	var spriteHeight = 16;
+
+	//  Drawing Area
+	var canvas;
+	var canvasBG;
+	var canvasGrid;
+	var canvasZoom = 128;
 
     game.create.grid('drawingGrid', 16 * canvasZoom, 16 * canvasZoom, 32, 32, 'rgba(0,191,243,0.8)');
 
@@ -139,24 +63,43 @@ function createDrawingArea() {
 
 }
 
+
+
 // find the player in the enimes list of the id passed and change its position in the game 
 function onMoveplayer (data) {
-	var movePlayer = findplayerbyid (data.id); 
-	if (!movePlayer) {
-		console.log('Player not found: ', data.id)
-		return
-	}
+	console.log('moving');
 	
-	movePlayer.player.body.x = data.x; 
-	movePlayer.player.body.y = data.y; 
-	movePlayer.player.body.angle = data.angle; 
+	if (gameProperties.in_game) {
+		var movePlayer = findplayerbyid (data.id); 
+		if (!movePlayer) {
+			console.log('Player not found: ', data.id)
+			return
+		}
+		//player
+		movePlayer.player.body.x = data.x; 
+		movePlayer.player.body.y = data.y; 
+		movePlayer.player.body.angle = data.angle; 
+		//sword
+		movePlayer.sword.body.x = data.sword_x; 
+		movePlayer.sword.body.y = data.sword_y; 
+		movePlayer.sword.body.angle = data.sword_angle; 
+		//shield
+		movePlayer.shield.body.x = data.shield_x; 
+		movePlayer.shield.body.y = data.shield_y; 
+		movePlayer.shield.body.angle = data.shield_angle; 
+	}
 }
+
+function onitemUpdate (data) {
+	var type = 'item';
+	speed_pickup.push(new speed_object(data.speed_pickup.id, game, type, data.speed_pickup.x, data.speed_pickup.y)); 
+}
+
 
 // call this function when first connected 
 function onSocketConnected () {
-	console.log('Connected to socket server');
-	
-	// Send local player data to the game server
+	console.log('entered game'); 
+	player_properties.player_id = socket.id;
 	socket.emit('new_player', { x: 0, y: 0, angle:player.angle});
 }
 
@@ -164,60 +107,145 @@ function onSocketDisconnect () {
 	console.log('Disconnected from socket server')
 }
 
-// search through enemies list to find the right object of the id; 
-function findplayerbyid (id) {
-	for (var i = 0; i < enemies.length; i++) {
-		if (enemies[i].player.name == id) {
-			return enemies[i]; 
+
+function onDamaged (data) {
+
+	player_properties.player_health -= 10; 
+	// when the player dies, kill him
+	if (player_properties.player_health <= 0) {
+		if (!player_properties.killed) {
+			socket.emit('killed', {id: socket.id, by_id:data.by_id}); 
+			player_properties.killed = true; 
 		}
 	}
 }
 
-// find players to be removed 
-function onRemovePlayer (data) {
-  var removePlayer = findplayerbyid(data.id)
-
-  console.log("removeworking");
-  // Player not found
-  if (!removePlayer) {
-    console.log('Player not found: ', data.id)
-    return;
-  }
-
-  removePlayer.player.kill(); 
-
-  // Remove player from array
-  enemies.splice(enemies.indexOf(removePlayer), 1);
+function onStunned (data) {
+	player_properties.latest_x = player.body.velocity.x;
+	player_properties.latest_y = player.body.velocity.y; 
+	player_properties.stunned_time = 2;
+	player_properties.free_time = game.time.totalElapsedSeconds() + player_properties.stunned_time; 
+	player_properties.stunned = true; 
 }
 
-var remote_player = function (index, game, player, startx, starty, startangle) {
-	this.game = game; 
-	this.player = player; 
-	this.angle = startangle; 
-	this.sword = new Phaser.Sprite(this.game, 50, 50, "sword");  
-	this.swordname = "sword".concat(index.toString()); 
-	this.sword.name = this.sword_name; 
-
-	
-	this.player = game.add.sprite(startx, starty, 'arrow');
-	this.player.anchor.setTo(0.5, 0.5);
-	this.player.scale.setTo(0.3, 0.3);
-	this.player.name = index.toString(); 
-	this.game.physics.p2.enableBody(this.player,true);
-	this.player.body.data.shapes[0].sensor = true;
-	
+function onGained (data) {
+	console.log ("gained 1 points"); 
+	socket.emit('gained'); 
+	player_properties.player_score += 1; 
 }
 
-function onDamaged (data) {
-	console.log('damaged'); 
-	player_properties.player_health -= 10; 
+function player_coll (body, bodyB, shapeA, shapeB, equation) {
+	var key = body.sprite.id; 
+	var item_type = body.sprite.type; 
+	
+	if (item_type === 'speed') {
+		if (player_properties.speed <= 600) {
+			player_properties.speed += 50; 
+		}
+		socket.emit('item_picked', {id: key, type: item_type}); 
+	}
 }
 
 function collide_handle (body, bodyB, shapeA, shapeB, equation) {
-	if (body.sprite.key === 'arrow') {
-		//emit message of the position of the player  
-		socket.emit('player_attack', {player_id: socket.id, enemy_id: body.sprite.name}); 
-	}	
+	var key = body.sprite; 
+	var current_id = player_properties.player_id;  
+	// check to see if the player sword collied with the body of enemy; make sure the sword does not hit the player body itself
+	if (body.sprite.key === 'arrow' && current_id !== key && current_id != 0) {
+		if (!player_properties.stunned) {
+			//emit message of the position of the player  
+			socket.emit('player_attack', {player_id: socket.id, enemy_id: body.sprite.name});
+		}
+	} else if (body.sprite.key === 'shield') {
+		player_properties.player_stunned();
+		socket.emit('player_stunned', {player_id: socket.id, enemy_id: body.sprite.name});
+	}
+}
+
+
+function is_inrange (number1, number2, tolerance) {
+	if (Math.abs(number1 - number2) <= tolerance) {
+		return true; 
+	}
+}
+
+function gui_interface () {
+	score_board = game.add.sprite(gameProperties.screenWidth - 150, 130, 'scoreboard');
+	score_board.alpha = 0.8;
+	score_board.anchor.setTo(0.5, 0.5);
+	score_board.scale.setTo(1, 1);
+	score_board.fixedToCamera = true;
+	
+	
+	var style = { font: "16px Arial", fill: "black", align: "center"};
+	playertext = game.add.text(player.x, player.y, (socket.id), style);
+	playertext.anchor.set(0.5);
+	player_properties.items.push(playertext); 
+	
+	
+	player_score = game.add.text(200, 300, "Score:", style);
+	player_score.anchor.set(0.5);
+	player_score.fixedToCamera = true;  
+	
+	
+	leader_text = game.add.text(0, 0, "Score:", style);
+	leader_text.anchor.set(0.5);
+
+	score_board.addChild(leader_text);
+	
+}
+
+function lbupdate (data) {
+	var board_string = ""; 
+	var count = 0; 
+	
+	for (var i = 0;  i < data.length; i++) {
+		board_string = board_string.concat(i + 1,": ");
+		board_string = board_string.concat(data[i].id," ",(data[i].score).toString(),"\n");
+		for (var j = 0; j < board_string.length; j++) {
+			if (board_string[j] == "\n") {
+				count += 1; 
+			}
+		}
+	}
+	
+	leader_text.setText(board_string); 
+}
+
+function onitemremove (data) {
+	var removeItem = finditembyid(data.id);
+	if (!removeItem) {
+		console.log('Item not found: ', data.id)
+		return;
+	}
+	removeItem.item.destroy(true,false);
+	if (removeItem.type === 'speed') {
+		speed_pickup.splice(speed_pickup.indexOf(removeItem), 1);
+	}
+}
+
+
+function game_reset () {	
+	game.stage.disableVisibilityChange = true;
+	game.world.setBounds(0, 0, 1920, 1920, false, false, false, false);
+	game.physics.startSystem(Phaser.Physics.P2JS);
+	game.physics.p2.setBoundsToWorld(false, false, false, false, false)
+	game.physics.p2.gravity.y = 0;
+	game.physics.p2.applyGravity = false; 
+	game.physics.p2.enableBody(game.physics.p2.walls, false); 
+	// physics start system
+	game.physics.p2.setImpactEvents(true);
+		
+	// empty the enemies, items 
+	enemies = [];
+	speed_pickup = []; 
+}
+
+
+function onrestart () {
+	gameProperties.in_game = false; 
+	game.world.removeAll();
+	socket.disconnect();  
+	game.state.start('login', true, true); 
 }
 
 
@@ -226,108 +254,178 @@ mainState.prototype = {
     preload: function () {
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
 		game.load.image(gamegraphicsassets.sword_name, gamegraphicsassets.sword_url); 
+		game.load.image(gamegraphicsassets.shield_name, gamegraphicsassets.shield_url); 
+		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
+		game.load.image(gamegraphicsassets.speedpickup_name, gamegraphicsassets.speedpickup_url); 
     },
  
     create: function () {
-		game.stage.disableVisibilityChange = true;
-		game.world.setBounds(0, 0, 1920, 1920, false, false, false, false);
-		game.physics.startSystem(Phaser.Physics.P2JS);
-		game.physics.p2.setBoundsToWorld(false, false, false, false, false)
-		game.physics.p2.gravity.y = 0;
-		game.physics.p2.applyGravity = false; 
-		game.physics.p2.enableBody(game.physics.p2.walls, false); 
 		
+		game_reset(); 
+
+		if (gameProperties.in_game) {
+			// when the socket connects, call the onsocketconnected and send its information to the server 
+			socket.emit('logged_in'); 
+			
+			socket.on('enter_game', onSocketConnected); 
+			
+			// when received remove_player, remove the player passed; 
+			socket.on('remove_player', onRemovePlayer); 
+			
+			// check for item update
+			socket.on('item_update', onitemUpdate); 
+			
+			// update items on the map; 
+			
+			// check if damaged 
+			socket.on('damaged', onDamaged); 
+			
+			// check if stunned 
+			socket.on('stunned', onStunned); 
+			
+			// check to gain points 
+			socket.on ('gained_point', onGained); 
+			
+			// check for leaderboard
+			socket.on ('leader_board', lbupdate); 
+			
+			// check for item removal
+			socket.on ('itemremove', onitemremove); 
+			
+			// check for restart game 
+			socket.on ('restart_game', onrestart); 
+			
+			 //listen for the broadcast.emit from the server for new player; 
+			socket.on('new_player', function(info) {
+				enemies.push(new remote_player(info.id, game, player, info.x, info.y, info.angle)); 
+				console.log(info);  
+			}); 
+			
+			
+			// listen if other players move 
+			socket.on('move_player', onMoveplayer); 
+		}
 		
-		// physics start system
-		game.physics.p2.setImpactEvents(true);
-		
-		
-		socket = io.connect();
-		
-		// when the socket connects, call the onsocketconnected and send its information to the server 
-		socket.on('connect', onSocketConnected); 
-		
-		// when received remove_player, remove the player passed; 
-		socket.on('remove_player', onRemovePlayer); 
-		
-		// check if damaged 
-		socket.on('damaged', onDamaged); 
-		
-		
-		 //listen for the broadcast.emit from the server for new player; 
-		socket.on('new_player', function(info) {
-			enemies.push(new remote_player(info.id, game, player, info.x, info.y, info.angle)); 
-			console.log(info); 
-		}); 
-		
-		
-		// listen if other players move 
-		socket.on('move_player', onMoveplayer); 
 		game.stage.backgroundColor = '#0072bc';
 		createDrawingArea();
-	
+
+		player_properties = new set_player(); 
 		
-		player = game.add.sprite(200, 100, 'arrow');
+		// setup player 
+		player = game.add.sprite(0, 0, 'arrow');
 		player.anchor.setTo(0.5, 0.5);
 		player.scale.setTo(0.3, 0.3);
+		game.physics.p2.enableBody(player, true); 
+		player.name = player_properties.player_id; 
 		
-		sword = game.add.sprite(300, 200, 'sword');
+		// player body collisions 
+		player.body.data.shapes[0].sensor = true;
+		player.body.onBeginContact.add(player_coll, this); 
+		
+		
+		sword = game.add.sprite(0, 0, 'sword');
 		game.physics.p2.enableBody(sword, true);
 		sword.body.data.gravityScale = 0;
+		sword.scale.setTo(0.3,0.3);
+		sword.pivot.y = - 150;
+		sword.body.clearShapes();
+		sword.body.addRectangle(200, 30, 50, 50);
+		player_properties.items_p.push(sword); 
 		
+		
+		// sword collisions 
 		sword.body.data.shapes[0].sensor = true;
+		sword.body.onBeginContact.add(collide_handle, this); 
 		
-		game.physics.p2.enableBody(player, true); 
-		player.body.data.shapes[0].sensor = true;
-	
-
-		player.body.onBeginContact.add(collide_handle, this); 
-
 		
-		// keep track of new players added; 
-		socket.on('heartbeat', function (data) {
-			
-			/*for (var i in data) {
-				if (data[i].id != socket.id) {
-					var player_sprite = data[i].id;
-					player_sprite.x = data[i].x; 
-					player_sprite.y = data[i].y; 
-				}
-				
-			}*/
-			//console.log(player_lst); 
-		}); 
+		shield = game.add.sprite(0, 0, 'shield');
+		game.physics.p2.enableBody(shield, true);
+		shield.body.data.gravityScale = 0;
+		shield.scale.setTo(0.4,0.4);
+		shield.pivot.y = 200;
+		shield.body.clearShapes();
+		shield.body.addRectangle(100, 100, 0, -80);
+		shield.body.data.shapes[0].sensor = true;
+		player_properties.items_p.push(shield); 
+
+		gui_interface(); 
+		
+		//keycode; 
+		attack_key = game.input.keyboard.addKey(Phaser.Keyboard.A);
+		
+		game.input.onDown.add(test1, this);
 		
 		//camera follow
 		game.camera.follow(player, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);
     },
  
     update: function () {
+		
+		
+		if (gameProperties.in_game) {
 
-		if (distanceToPointer(player) <= 30) {
-			player.rotation = movetoPointer(player, 0, game.input.activePointer, 1000);
-		} else {
-			player.rotation = movetoPointer(player, 400, game.input.activePointer);
-		}
-		
-		
-		
-		//emit message of the position of the player  
-		socket.emit('move_player', {x: player.x, y: player.y, angle: player.angle}); 
-		
+			if (socket.id) {
+				playertext.setText(socket.id); 
+			}
+			
+			// if player gets stunned, count towards 0
+			if (player_properties.stunned) {
+				if (game.time.totalElapsedSeconds() >= player_properties.free_time) {
+					player_properties.stunned = false; 
+				}
+			}
+			
+			
+			if (player_properties.player_health > 0 && !player_properties.stunned) {
 
-	
+				
+				player_score.setText(player_properties.player_score ," Points!");
+				
+				//emit message of the position of the player  
+				socket.emit('move_player', {x: player.x, y: player.y, angle: player.angle, sword_x: sword.x, sword_y: sword.y, sword_angle: sword.angle,
+				shield_x: shield.x, shield_y: shield.y, shield_angle: shield.angle});	
+				
+				if (player_properties.player_attack) {
+					
+					if (game.time.totalElapsedSeconds() > player_properties.next_time) {
+						dash_draw(); 
+						player_properties.next_time = game.time.totalElapsedSeconds() + 0.05; 
+					}
+					
+					if (is_inrange(player_properties.player_moveX, player.x, 10) && 
+					is_inrange(player_properties.player_moveY, player.y, 10)) {
+						player_properties.player_attack = false; 
+					}
+				}
+				
+				
+				// character movement 
+				if (!player_properties.player_attack) {
+					if (distanceToPointer(player) <= 30) {
+						player.rotation = movetoPointer(player, 0, game.input.activePointer, 1000);
+					} else {
+						player.rotation = movetoPointer(player, player_properties.speed , game.input.activePointer);
+					}
+				}
+				player_properties.player_update(); 
+			} else if (player_properties.stunned_time > 0) {
+				// when stunned, turn velocity to 0. 
+				player.body.velocity.x = player_properties.latest_x * -1/10; 
+				player.body.velocity.y = player_properties.latest_y * -1/10; 
+				player_properties.player_update();
+			}
 
-
-		sword.body.velocity.x = player.body.velocity.x;
-		sword.body.velocity.y = player.body.velocity.y;
-		
-		console.log(player_properties.player_health); 
-		
-		// when the player dies, kill him
-		if (player_properties.player_health <= 0) {
-			console.log('killed'); 
-			socket.emit('killed', {id: socket.id}); 
+			// kill the player when helath is 0 
+			if (player_properties.player_health <= 0) {
+				player.destroy(true, false); 
+				player_properties.itemsdestroy(); 
+			}
+			 
+			 
+			// update the score of the player; 
+			if (player_properties.player_id) {
+				socket.emit("new_score", {player_id: player_properties.player_id, score: player_properties.player_score}); 
+			}
 		}
 		
     },
@@ -335,6 +433,7 @@ mainState.prototype = {
 		
 	render: function () {
 	
+		
 		game.debug.body(player);
 		for (var i = 0; i < enemies.length; i++) {
 			game.debug.body(enemies[i].player);
@@ -344,9 +443,10 @@ mainState.prototype = {
 	
 };
 
-
-
- 
-var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.CANVAS, 'gameDiv');
-game.state.add('main', mainState);
-game.state.start('main');
+var gameBootstrapper = {
+    init: function(gameContainerElementId){
+		game.state.add('main', mainState);
+		game.state.add('login', login); 
+		game.state.start('login'); 
+    }
+};
