@@ -7,6 +7,9 @@ var gamegraphicsassets = {
 	sword_url: 'client/assets/sprites/sword.png',
 	sword_name: 'sword', 
 	
+	sword_pierceurl: 'client/assets/sprites/sword_pierce.png',
+	sword_piercename: 'sword_pierce',
+	
 	shield_url: 'client/assets/sprites/shield.png',
 	shield_name: 'shield',
 	
@@ -14,24 +17,52 @@ var gamegraphicsassets = {
 	scoreboard_name: 'scoreboard',
 	
 	speedpickup_url: 'client/assets/sprites/speedpickup.png', 
-	speedpickup_name: 'speedpickup'
+	speedpickup_name: 'speedpickup',
+	
+	stunpickup_url: 'client/assets/sprites/stun_pickup.png', 
+	stunpickup_name: 'stunpickup',
+	
+	piercepickup_url: 'client/assets/sprites/pierce_pickup.png', 
+	piercepickup_name: 'piercepickup',
+	
+	crown_url: 'client/assets/sprites/crown.png', 
+	crown_name: 'crown'
 };
- 
- 
+
+
 var enemies = []; 
 var speed_pickup = []; 
-
-		
+var stun_pickup = [];
+var pierce_pickup = [];
+var username; 
+var socketid; 
  
 var mainState = function(game){
 	
 };
 
-function test1 () {
-	player.rotation = movetoPointer(player, 1000);
-	player_properties.player_attack = true; 
+function dash_attack () {
+	player.rotation = movetoPointer(player, player_properties.dashspeed);
+	if (player_properties.canattack == true) {
+		player_properties.next_attack = player_properties.attack_cooldown + gameProperties.current_time; 
+		player_properties.player_attack = true; 
+	}
 	player_properties.player_moveX = game.input.mousePointer.worldX;
-	player_properties.player_moveY = game.input.mousePointer.worldY; 
+	player_properties.player_moveY = game.input.mousePointer.worldY;
+	
+	
+	
+	// make sure the player items follow players * this line is for when the player first loads and spams click 
+	player_properties.player_update();	
+	
+	for (var i = 0; i < player_properties.in_cols.length; i++) {
+		console.log(player_properties.in_cols);
+		if (!player_properties.stunned && player_properties.player_attack) {
+			console.log('attack');
+			//emit message of the position of the player 
+			socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
+		}
+	}
 
 }
 
@@ -67,7 +98,6 @@ function createDrawingArea() {
 
 // find the player in the enimes list of the id passed and change its position in the game 
 function onMoveplayer (data) {
-	console.log('moving');
 	
 	if (gameProperties.in_game) {
 		var movePlayer = findplayerbyid (data.id); 
@@ -87,19 +117,51 @@ function onMoveplayer (data) {
 		movePlayer.shield.body.x = data.shield_x; 
 		movePlayer.shield.body.y = data.shield_y; 
 		movePlayer.shield.body.angle = data.shield_angle; 
+		
+		if (data.first_place) {
+			movePlayer.first_place(); 
+		} else if (movePlayer.first === true) {
+			movePlayer.first = false; 
+			this.crown.destroy(true, false); 
+		}
+		
+		if (data.pierce) {
+			movePlayer.pierce_effect(); 
+		} else {
+			movePlayer.pierce = false; 
+			movePlayer.sword.loadTexture('sword');
+		}
+		
+		movePlayer.updateremote();
+		
+		if (data.attacking) {
+			console.log('hi'); 
+			movePlayer.enemy_attack(); 
+		} else {
+			return; 
+		}
 	}
 }
 
+
 function onitemUpdate (data) {
-	var type = 'item';
-	speed_pickup.push(new speed_object(data.speed_pickup.id, game, type, data.speed_pickup.x, data.speed_pickup.y)); 
+	var type = data.type;
+	if (type === 'speed') {	
+		speed_pickup.push(new speed_object(data.id, game, type, data.x, data.y)); 
+	} else if (type === 'stun') {
+		stun_pickup.push(new stun_object(data.id, game, type, data.x, data.y));
+	} else if (type === 'pierce') {
+		pierce_pickup.push(new pierce_object(data.id, game, type, data.x, data.y));
+	}
+	 
 }
 
 
 // call this function when first connected 
-function onSocketConnected () {
-	console.log('entered game'); 
-	player_properties.player_id = socket.id;
+function onSocketConnected (data) {
+	console.log(data); 
+	username = data.info.username;
+	socketid = data.info.id;
 	socket.emit('new_player', { x: 0, y: 0, angle:player.angle});
 }
 
@@ -114,51 +176,45 @@ function onDamaged (data) {
 	// when the player dies, kill him
 	if (player_properties.player_health <= 0) {
 		if (!player_properties.killed) {
-			socket.emit('killed', {id: socket.id, by_id:data.by_id}); 
+			if (data.pierce) {
+				player_properties.display_text('Enemy had Pierce'); 
+			}
+			socket.emit('killed', {id: socket.id, by_id:data.by_id, pierce: data.pierce}); 
 			player_properties.killed = true; 
 		}
 	}
 }
 
+
 function onStunned (data) {
-	player_properties.latest_x = player.body.velocity.x;
-	player_properties.latest_y = player.body.velocity.y; 
-	player_properties.stunned_time = 2;
-	player_properties.free_time = game.time.totalElapsedSeconds() + player_properties.stunned_time; 
-	player_properties.stunned = true; 
+	if (player_properties.stun_immune) {
+		player_properties.display_text('Stun Immune'); 
+		player_properties.display_onPlayer('Stun Immune'); 
+		player_properties.player_attack = false; 
+		return; 
+	}
+	console.log(data);
+	player_properties.player_stunned(); 
+	player_properties.display_text('Stunned By ' + data.username, player_properties.stunned_time * 1000/2); 
+	player_properties.display_onPlayer('Stunned !', player_properties.stunned_time * 1000/2); 
 }
 
 function onGained (data) {
 	console.log ("gained 1 points"); 
-	socket.emit('gained'); 
-	player_properties.player_score += 1; 
-}
-
-function player_coll (body, bodyB, shapeA, shapeB, equation) {
-	var key = body.sprite.id; 
-	var item_type = body.sprite.type; 
 	
-	if (item_type === 'speed') {
-		if (player_properties.speed <= 600) {
-			player_properties.speed += 50; 
-		}
-		socket.emit('item_picked', {id: key, type: item_type}); 
+	var value = data.value; 
+	if (data.pierce) {
+		player_properties.display_text('Slayed Enemy With Pierce!'); 
+		value *= 1.5; 
 	}
-}
 
-function collide_handle (body, bodyB, shapeA, shapeB, equation) {
-	var key = body.sprite; 
-	var current_id = player_properties.player_id;  
-	// check to see if the player sword collied with the body of enemy; make sure the sword does not hit the player body itself
-	if (body.sprite.key === 'arrow' && current_id !== key && current_id != 0) {
-		if (!player_properties.stunned) {
-			//emit message of the position of the player  
-			socket.emit('player_attack', {player_id: socket.id, enemy_id: body.sprite.name});
-		}
-	} else if (body.sprite.key === 'shield') {
-		player_properties.player_stunned();
-		socket.emit('player_stunned', {player_id: socket.id, enemy_id: body.sprite.name});
-	}
+	var username = data.username; 
+	
+	this.onPlusClick(value);
+	player_properties.player_score += value; 
+	player_properties.display_text("You Killed " + username);
+	
+	socket.emit('gained', {value: value, player_score: player_properties.player_score});
 }
 
 
@@ -168,51 +224,20 @@ function is_inrange (number1, number2, tolerance) {
 	}
 }
 
-function gui_interface () {
-	score_board = game.add.sprite(gameProperties.screenWidth - 150, 130, 'scoreboard');
-	score_board.alpha = 0.8;
-	score_board.anchor.setTo(0.5, 0.5);
-	score_board.scale.setTo(1, 1);
-	score_board.fixedToCamera = true;
-	
-	
-	var style = { font: "16px Arial", fill: "black", align: "center"};
-	playertext = game.add.text(player.x, player.y, (socket.id), style);
-	playertext.anchor.set(0.5);
-	player_properties.items.push(playertext); 
-	
-	
-	player_score = game.add.text(200, 300, "Score:", style);
-	player_score.anchor.set(0.5);
-	player_score.fixedToCamera = true;  
-	
-	
-	leader_text = game.add.text(0, 0, "Score:", style);
-	leader_text.anchor.set(0.5);
-
-	score_board.addChild(leader_text);
-	
-}
-
-function lbupdate (data) {
-	var board_string = ""; 
-	var count = 0; 
-	
-	for (var i = 0;  i < data.length; i++) {
-		board_string = board_string.concat(i + 1,": ");
-		board_string = board_string.concat(data[i].id," ",(data[i].score).toString(),"\n");
-		for (var j = 0; j < board_string.length; j++) {
-			if (board_string[j] == "\n") {
-				count += 1; 
-			}
-		}
-	}
-	
-	leader_text.setText(board_string); 
-}
-
 function onitemremove (data) {
-	var removeItem = finditembyid(data.id);
+	console.log(data.type);
+	
+	if (data.type === 'speed') {
+		console.log(data); 
+		console.log(speed_pickup);
+		var removeItem = finditembyid(data.id, speed_pickup.length, speed_pickup);
+		console.log('hi');
+	} else if (data.type === 'stun') {
+		var removeItem = finditembyid(data.id, stun_pickup.length, stun_pickup );
+	} else if (data.type === 'pierce') {
+		var removeItem = finditembyid(data.id, pierce_pickup.length, pierce_pickup );
+	} 
+	 
 	if (!removeItem) {
 		console.log('Item not found: ', data.id)
 		return;
@@ -238,14 +263,16 @@ function game_reset () {
 	// empty the enemies, items 
 	enemies = [];
 	speed_pickup = []; 
+	stun_pickup = [];
+	pierce_pickup = [];
 }
 
 
 function onrestart () {
 	gameProperties.in_game = false; 
+	game.state.start('login', slideOut, slideIn, true, true);
 	game.world.removeAll();
-	socket.disconnect();  
-	game.state.start('login', true, true); 
+	socket.disconnect();   
 }
 
 
@@ -254,14 +281,24 @@ mainState.prototype = {
     preload: function () {
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
 		game.load.image(gamegraphicsassets.sword_name, gamegraphicsassets.sword_url); 
+		game.load.image(gamegraphicsassets.sword_piercename, gamegraphicsassets.sword_pierceurl); 
 		game.load.image(gamegraphicsassets.shield_name, gamegraphicsassets.shield_url); 
-		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
 		game.load.image(gamegraphicsassets.speedpickup_name, gamegraphicsassets.speedpickup_url); 
+		game.load.image(gamegraphicsassets.stunpickup_name, gamegraphicsassets.stunpickup_url);
+		game.load.image(gamegraphicsassets.piercepickup_name, gamegraphicsassets.piercepickup_url); 
+		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
+		game.load.image(gamegraphicsassets.crown_name, gamegraphicsassets.crown_url); 
+		game.load.spritesheet('button', 'client/assets/sprites/plus_minus.png', 31, 31);
     },
  
     create: function () {
 		
-		game_reset(); 
+		//resetting the game 
+		game_reset();
+		createDrawingArea();
+		
+		//z-order for sprites 
+
 
 		if (gameProperties.in_game) {
 			// when the socket connects, call the onsocketconnected and send its information to the server 
@@ -284,7 +321,7 @@ mainState.prototype = {
 			socket.on('stunned', onStunned); 
 			
 			// check to gain points 
-			socket.on ('gained_point', onGained); 
+			socket.on ('gained_point', onGained.bind(this)); 
 			
 			// check for leaderboard
 			socket.on ('leader_board', lbupdate); 
@@ -297,7 +334,8 @@ mainState.prototype = {
 			
 			 //listen for the broadcast.emit from the server for new player; 
 			socket.on('new_player', function(info) {
-				enemies.push(new remote_player(info.id, game, player, info.x, info.y, info.angle)); 
+				var newPlayer = new remote_player(info.id, info.username, game, player, info.x, info.y, info.angle);
+				enemies.push(newPlayer); 
 				console.log(info);  
 			}); 
 			
@@ -306,10 +344,10 @@ mainState.prototype = {
 			socket.on('move_player', onMoveplayer); 
 		}
 		
-		game.stage.backgroundColor = '#0072bc';
-		createDrawingArea();
 
-		player_properties = new set_player(); 
+		player_properties = new set_player();
+		player_properties.player_id = socket.id;		
+		
 		
 		// setup player 
 		player = game.add.sprite(0, 0, 'arrow');
@@ -335,7 +373,8 @@ mainState.prototype = {
 		
 		// sword collisions 
 		sword.body.data.shapes[0].sensor = true;
-		sword.body.onBeginContact.add(collide_handle, this); 
+		sword.body.onBeginContact.add(collide_handle, this);	
+		sword.body.onEndContact.add(collide_exit, this); 
 		
 		
 		shield = game.add.sprite(0, 0, 'shield');
@@ -348,12 +387,13 @@ mainState.prototype = {
 		shield.body.data.shapes[0].sensor = true;
 		player_properties.items_p.push(shield); 
 
-		gui_interface(); 
+		gui_interface.bind(this)(); 
 		
 		//keycode; 
 		attack_key = game.input.keyboard.addKey(Phaser.Keyboard.A);
 		
-		game.input.onDown.add(test1, this);
+		player_properties.player_update();
+		game.input.onDown.add(dash_attack, this);
 		
 		//camera follow
 		game.camera.follow(player, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);
@@ -361,29 +401,47 @@ mainState.prototype = {
  
     update: function () {
 		
-		
+		game.world.bringToTop(score_board);
 		if (gameProperties.in_game) {
+			
+			//set the currenttime in game propeties; 
+			gameProperties.current_time = game.time.totalElapsedSeconds(); 
 
-			if (socket.id) {
-				playertext.setText(socket.id); 
+			
+			//setting the gui element texts
+			if (username) {
+				playertext.setText(username); 
+				player_level.setText("Level: " + player_properties.level);
 			}
+			
+			
+			if (player_properties.next_attack < gameProperties.current_time) {
+				player_properties.canattack = true; 
+			} else {
+				player_properties.canattack = false;
+			}
+			
 			
 			// if player gets stunned, count towards 0
 			if (player_properties.stunned) {
-				if (game.time.totalElapsedSeconds() >= player_properties.free_time) {
+				if (gameProperties.current_time >= player_properties.free_time) {
 					player_properties.stunned = false; 
 				}
 			}
 			
 			
 			if (player_properties.player_health > 0 && !player_properties.stunned) {
+				
+				//if the player eats speed boost pick up draw the effect
+				if (player.body.velocity.x > 0 || player.body.velocity.y > 0) {
+					if (player_properties.speed_boost && !player_properties.player_attack) {
+						dash_draw();
+					}
+				}
 
 				
-				player_score.setText(player_properties.player_score ," Points!");
+				player_score.setText("Points: " + player_properties.player_score);
 				
-				//emit message of the position of the player  
-				socket.emit('move_player', {x: player.x, y: player.y, angle: player.angle, sword_x: sword.x, sword_y: sword.y, sword_angle: sword.angle,
-				shield_x: shield.x, shield_y: shield.y, shield_angle: shield.angle});	
 				
 				if (player_properties.player_attack) {
 					
@@ -392,9 +450,17 @@ mainState.prototype = {
 						player_properties.next_time = game.time.totalElapsedSeconds() + 0.05; 
 					}
 					
+					// if the player got stunned, stop attacking 
+					if (player_properties.stunned) {
+						player_properties.player_attack = false;
+					}
+					
+					// if the player goes to destination, stop attacking, turn the pierce ability off
 					if (is_inrange(player_properties.player_moveX, player.x, 10) && 
 					is_inrange(player_properties.player_moveY, player.y, 10)) {
 						player_properties.player_attack = false; 
+						player_properties.pierce = false;
+						sword.loadTexture('sword');
 					}
 				}
 				
@@ -407,12 +473,34 @@ mainState.prototype = {
 						player.rotation = movetoPointer(player, player_properties.speed , game.input.activePointer);
 					}
 				}
-				player_properties.player_update(); 
-			} else if (player_properties.stunned_time > 0) {
-				// when stunned, turn velocity to 0. 
-				player.body.velocity.x = player_properties.latest_x * -1/10; 
-				player.body.velocity.y = player_properties.latest_y * -1/10; 
+				
+				
+			} 
+			
+			
+			// update the items of players. make sure this is after moving.
+			if (!player_properties.killed) {
 				player_properties.player_update();
+				
+					//emit message of the position of the player  
+				var player_move = {
+					x: player.x,
+					y: player.y, 
+					angle: player.angle, 
+					
+					sword_x: sword.x,
+					sword_y: sword.y,
+					sword_angle: sword.angle,
+					
+					shield_x: shield.x, 
+					shield_y: shield.y, 
+					shield_angle: shield.angle,
+					
+					attacking: player_properties.player_attack,
+					pierce: player_properties.pierce
+				}
+				
+				socket.emit('move_player', player_move);	
 			}
 
 			// kill the player when helath is 0 
@@ -424,20 +512,54 @@ mainState.prototype = {
 			 
 			// update the score of the player; 
 			if (player_properties.player_id) {
-				socket.emit("new_score", {player_id: player_properties.player_id, score: player_properties.player_score}); 
+				socket.emit("new_score", {player_id: player_properties.player_id, score: player_properties.player_score,
+				value: player_properties.player_value }); 
 			}
+			
+			
 		}
 		
+    },
+	
+	onPlusClick: function(value){
+		var new_exp = player_properties.expvalue + value; 
+		player_properties.expvalue = new_exp;
+	    var exp_max = player_properties.exp_max; 
+		
+		
+		if (player_properties.expvalue >= player_properties.exp_max) {
+			this.myHealthBar.setPercent(100); 
+		    player_properties.expvalue = 0;		  
+		    this.myHealthBar.setPercent(0);
+		    player_properties.onLevelup();
+		  
+		    if (new_exp > exp_max) {
+			    console.log('overflow');
+			    var new_val = new_exp - exp_max; 
+			    this.onPlusClick(new_val); 
+		    }
+		    return; 
+	    }
+	  
+	  var exp_percent = (player_properties.expvalue/player_properties.exp_max) * 100; 
+      this.myHealthBar.setPercent(exp_percent);
+	
+    },
+	
+    onMinusClick: function(){
+      player_properties.expvalue = player_properties.expvalue - 10;
+      if(player_properties.expvalue < 0) player_properties.expvalue = 0;
+      this.myHealthBar.setPercent(player_properties.expvalue);
     },
 	
 		
 	render: function () {
 	
-		
+		/*
 		game.debug.body(player);
 		for (var i = 0; i < enemies.length; i++) {
 			game.debug.body(enemies[i].player);
-		}
+		}*/
 		
 	}
 	
@@ -449,4 +571,4 @@ var gameBootstrapper = {
 		game.state.add('login', login); 
 		game.state.start('login'); 
     }
-};
+};;
