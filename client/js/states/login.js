@@ -1,7 +1,7 @@
 var gameProperties = {
-    screenWidth: 1367,
+    screenWidth: window.innerWidth * window.devicePixelRatio,
 	current_time: 0,
-    screenHeight: 662,
+    screenHeight: window.innerHeight * window.devicePixelRatio,
 	game_elemnt: "gameDiv",
 	in_game: false,
 	connect: false, 
@@ -9,6 +9,27 @@ var gameProperties = {
 
 var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.CANVAS, gameProperties.game_elemnt);
 
+var GameApp = GameApp || {};
+GameApp.USE_DEVICE_PIXEL_RATIO = false; // here you can change to use or not the device pixel ratio - it is not supported by all browsers
+
+if (GameApp.USE_DEVICE_PIXEL_RATIO) {
+    GameApp.DEVICE_PIXEL_RATIO = window.devicePixelRatio;
+    GameApp.CANVAS_WIDTH = window.innerWidth * GameApp.DEVICE_PIXEL_RATIO;
+    GameApp.CANVAS_HEIGHT = window.innerHeight * GameApp.DEVICE_PIXEL_RATIO;
+} else {
+    GameApp.DEVICE_PIXEL_RATIO = 1.0;
+    GameApp.CANVAS_WIDTH = window.innerWidth * GameApp.DEVICE_PIXEL_RATIO;
+    GameApp.CANVAS_HEIGHT = window.innerHeight * GameApp.DEVICE_PIXEL_RATIO;
+}
+
+GameApp.ASPECT_RATIO = GameApp.CANVAS_WIDTH / GameApp.CANVAS_HEIGHT;
+GameApp.ASPECT_RATIO_ROUND = Math.round(GameApp.ASPECT_RATIO);
+
+if (GameApp.ASPECT_RATIO > 1) {
+    GameApp.SCALE_RATIO = GameApp.CANVAS_HEIGHT / GameApp.CANVAS_WIDTH;
+} else {
+    GameApp.SCALE_RATIO = GameApp.CANVAS_WIDTH / GameApp.CANVAS_WIDTH;
+}
 
 
 function potential_connect () {

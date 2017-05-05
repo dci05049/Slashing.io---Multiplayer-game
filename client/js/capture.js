@@ -42,25 +42,27 @@ var mainState = function(game){
 };
 
 function dash_attack () {
-	player.rotation = movetoPointer(player, player_properties.dashspeed);
-	if (player_properties.canattack == true) {
-		player_properties.next_attack = player_properties.attack_cooldown + gameProperties.current_time; 
-		player_properties.player_attack = true; 
-	}
-	player_properties.player_moveX = game.input.mousePointer.worldX;
-	player_properties.player_moveY = game.input.mousePointer.worldY;
-	
-	
-	
-	// make sure the player items follow players * this line is for when the player first loads and spams click 
-	player_properties.player_update();	
-	
-	for (var i = 0; i < player_properties.in_cols.length; i++) {
-		console.log(player_properties.in_cols);
-		if (!player_properties.stunned && player_properties.player_attack) {
-			console.log('attack');
-			//emit message of the position of the player 
-			socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
+	if (!player_properties.stunned) {
+		player.rotation = movetoPointer(player, player_properties.dashspeed);
+		if (player_properties.canattack == true) {
+			player_properties.next_attack = player_properties.attack_cooldown + gameProperties.current_time; 
+			player_properties.player_attack = true; 
+		}
+		player_properties.player_moveX = game.input.mousePointer.worldX;
+		player_properties.player_moveY = game.input.mousePointer.worldY;
+		
+		
+		
+		// make sure the player items follow players * this line is for when the player first loads and spams click 
+		player_properties.player_update();	
+		
+		for (var i = 0; i < player_properties.in_cols.length; i++) {
+			console.log(player_properties.in_cols);
+			if (!player_properties.stunned && player_properties.player_attack) {
+				console.log('attack');
+				//emit message of the position of the player 
+				socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
+			}
 		}
 	}
 
@@ -78,7 +80,7 @@ function createDrawingArea() {
 	var canvasGrid;
 	var canvasZoom = 128;
 
-    game.create.grid('drawingGrid', 16 * canvasZoom, 16 * canvasZoom, 32, 32, 'rgba(0,191,243,0.8)');
+    game.create.grid('drawingGrid', 1920, 1920, 32, 32, 'rgba(0,191,243,0.8)');
 
     canvas = game.make.bitmapData(spriteWidth * canvasZoom, spriteHeight * canvasZoom);
     canvasBG = game.make.bitmapData(canvas.width, canvas.height);
