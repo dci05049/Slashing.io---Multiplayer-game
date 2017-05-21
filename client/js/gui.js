@@ -66,9 +66,9 @@ function lbupdate (data) {
 	if (data) {
 		//username, playeproperties and there is at least one element in the top scorer list 
 	
-		if (socketid && data[0]) {
+		if (game_config.socketid && data[0]) {
  
-			if (socketid === data[0].id) {
+			if (game_config.socketid === data[0].id) {
 				player_properties.first_place(); 
 			} else if (player_properties.first) {
 				player_properties.first = false; 

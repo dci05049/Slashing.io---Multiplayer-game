@@ -3,6 +3,7 @@ body {
   font-family: 'Press Start 2P', cursive;
   overflow: hidden;
   margin: 0; padding: 0; border: 0;
+  height: 100%;
 }
 
 .app {

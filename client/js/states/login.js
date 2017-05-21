@@ -1,7 +1,9 @@
+console.log(screen.innerHeight);
+
 var gameProperties = {
-    screenWidth: window.innerWidth * window.devicePixelRatio,
+    screenWidth: (window.screen.availWidth * window.devicePixelRatio),
 	current_time: 0,
-    screenHeight: window.innerHeight * window.devicePixelRatio,
+    screenHeight: (window.screen.availHeight  * window.devicePixelRatio),
 	game_elemnt: "gameDiv",
 	in_game: false,
 	connect: false, 
@@ -9,37 +11,21 @@ var gameProperties = {
 
 var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.CANVAS, gameProperties.game_elemnt);
 
-var GameApp = GameApp || {};
-GameApp.USE_DEVICE_PIXEL_RATIO = false; // here you can change to use or not the device pixel ratio - it is not supported by all browsers
-
-if (GameApp.USE_DEVICE_PIXEL_RATIO) {
-    GameApp.DEVICE_PIXEL_RATIO = window.devicePixelRatio;
-    GameApp.CANVAS_WIDTH = window.innerWidth * GameApp.DEVICE_PIXEL_RATIO;
-    GameApp.CANVAS_HEIGHT = window.innerHeight * GameApp.DEVICE_PIXEL_RATIO;
-} else {
-    GameApp.DEVICE_PIXEL_RATIO = 1.0;
-    GameApp.CANVAS_WIDTH = window.innerWidth * GameApp.DEVICE_PIXEL_RATIO;
-    GameApp.CANVAS_HEIGHT = window.innerHeight * GameApp.DEVICE_PIXEL_RATIO;
-}
-
-GameApp.ASPECT_RATIO = GameApp.CANVAS_WIDTH / GameApp.CANVAS_HEIGHT;
-GameApp.ASPECT_RATIO_ROUND = Math.round(GameApp.ASPECT_RATIO);
-
-if (GameApp.ASPECT_RATIO > 1) {
-    GameApp.SCALE_RATIO = GameApp.CANVAS_HEIGHT / GameApp.CANVAS_WIDTH;
-} else {
-    GameApp.SCALE_RATIO = GameApp.CANVAS_WIDTH / GameApp.CANVAS_WIDTH;
-}
+game.width = 100;
 
 
 function potential_connect () {
- 
+	socket.emit('in_lobby'); 
 }
 
 slideIn = Phaser.Plugin.StateTransition.In['SlideBottom'],
 slideOut = Phaser.Plugin.StateTransition.Out['SlideBottom'];
 
-function join_game () {
+function join_game (data) {
+	game_config.socketid = data.id; 
+	game_config.username = data.username; 
+	game_config.room_id = data.room_id; 
+	
 	game.state.start(
         'main',
         slideOut,

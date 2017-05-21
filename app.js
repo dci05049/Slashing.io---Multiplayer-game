@@ -23,29 +23,30 @@ serv.listen(process.env.PORT || 2000);
 console.log("Server started.");
 
 
-var Socket_List = {}; 
-var player_lst = [];
-var top_scorer = []; 
-
-var speed_pickup = [];
-var stun_pickup = []; 
-var pierce_pickup = [];
+var Socket_List = {};
+var room_List = {}; 
+var loby_List = []; 
+var avail_roomlist = []; 
 
 
-var game_setup = {
-	speed_pickupnum: 5,
-	stun_pickupnum: 5, 
-	pierce_pickupnum: 5,
-	canvas_width: 1920,
-	canvas_height: 1920
+function game_setup () {
+	this.room_id;
+	this.player_num = 0;
+	this.max_num; 
+	this.player_lst = [];
+	this.speed_pickupnum = 5;
+	this.stun_pickupnum = 5;
+	this.pierce_pickupnum = 5;
+	this.canvas_width = 1920;
+	this.canvas_height = 1920;
+
+	this.player_lst = [];
+	this.top_scorer = []; 
+
+	this.speed_pickup = [];
+	this.stun_pickup = []; 
+	this.pierce_pickup = [];
 }
-
-var info = {
-	username: 'undefined', 
-	id: 'undefined',
-	score: 0
-}
-
 
  // io connection 
 var io = require('socket.io')(serv,{});
@@ -59,37 +60,44 @@ function server_handler() {
  
 function heartbeat () {
 	
-	player_lst.sort(function (a, b) {
-		return b.score - a.score; 
-	}); 
-	
-	this.speed_num = game_setup.speed_pickupnum - speed_pickup.length; 
-	this.stun_num = game_setup.stun_pickupnum - stun_pickup.length;
-	this.pierce_num = game_setup.pierce_pickupnum - pierce_pickup.length;
-	
-	addstun(this.stun_num);
-	addspeed(this.speed_num); 
-	addpierce(this.pierce_num);
-	
+	for (var room in room_List) {
+		room_List[room].player_lst.sort(function (a, b) {
+			return b.score - a.score; 
+		}); 
 
-	if (player_lst.length >= 5) {
-		for (var i = 0; i < 5; i++) {
-			top_scorer[i] = player_lst[i];
-		}
-		io.sockets.emit("leader_board", top_scorer);
-	} else {
-		for (var i = 0; i < player_lst.length; i++) {
-			top_scorer[i] = player_lst[i];
+		//reference to the room in room list 
+		var unique_room = room_List[room]; 
+		
+		//change the number of players in the list 
+		unique_room.player_num = unique_room.player_lst.length;
+		
+		
+		this.speed_num = unique_room.speed_pickupnum - unique_room.speed_pickup.length; 
+		this.stun_num = unique_room.stun_pickupnum - unique_room.stun_pickup.length;
+		this.pierce_num = unique_room.pierce_pickupnum - unique_room.pierce_pickup.length;
+		
+		addstun(this.stun_num, unique_room);
+		addspeed(this.speed_num, unique_room); 
+		addpierce(this.pierce_num, unique_room);
+
+		if (unique_room.player_lst.length >= 5) {
+			for (var i = 0; i < 5; i++) {
+				unique_room.top_scorer[i] = unique_room.player_lst[i];
+			}
+			io.sockets.in(room).emit("leader_board", unique_room.top_scorer);
+		} else {
+			for (var i = 0; i < unique_room.player_lst.length; i++) {
+				unique_room.top_scorer[i] = unique_room.player_lst[i];
+			}
+			
+			io.sockets.in(room).emit("leader_board", unique_room.top_scorer);
 		}
 		
-		io.sockets.emit("leader_board", top_scorer);
-	}
-	if (player_lst[0]) {
 
 	}
 }
 
-function addspeed(n) {
+function addspeed(n, room) {
 	var new_speed = []; 
 	
 	if (n <= 0) {
@@ -98,14 +106,16 @@ function addspeed(n) {
 	
 	for (var i = 0; i < n; i++) {
 		var unique_id = unique.v4(); 
-		var speedentity = new speed(game_setup.canvas_width, game_setup.canvas_height, 'speed', unique_id);
-		speed_pickup.push(speedentity); 
+		var speedentity = new speed(room.canvas_width, room.canvas_height, 'speed', unique_id);
+		room.speed_pickup.push(speedentity); 
 		new_speed.push(speedentity); 
-		io.sockets.emit("item_update", speedentity); 
+		io.sockets.in(room.room_id).emit("item_update", speedentity); 
 	}
+	
+	
 }
 
-function addstun(n) {
+function addstun(n, room) {
 	var new_stun = []; 
 	
 	if (n <= 0) {
@@ -114,14 +124,14 @@ function addstun(n) {
 	
 	for (var i = 0; i < n; i++) {
 		var unique_id = unique.v4(); 
-		var stunentity = new stun(game_setup.canvas_width, game_setup.canvas_height, 'stun', unique_id);
-		stun_pickup.push(stunentity); 
+		var stunentity = new stun(room.canvas_width, room.canvas_height, 'stun', unique_id);
+		room.stun_pickup.push(stunentity); 
 		new_stun.push(stunentity); 
-		io.sockets.emit("item_update", stunentity); 
+		io.sockets.in(room.room_id).emit("item_update", stunentity); 
 	}
 }
 
-function addpierce(n) {
+function addpierce(n, room) {
 	var new_pierce = []; 
 	
 	if (n <= 0) {
@@ -130,10 +140,10 @@ function addpierce(n) {
 	
 	for (var i = 0; i < n; i++) {
 		var unique_id = unique.v4(); 
-		var pierceentity = new stun(game_setup.canvas_width, game_setup.canvas_height, 'pierce', unique_id);
-		pierce_pickup.push(pierceentity); 
+		var pierceentity = new stun(room.canvas_width, room.canvas_height, 'pierce', unique_id);
+		room.pierce_pickup.push(pierceentity); 
 		new_pierce.push(pierceentity); 
-		io.sockets.emit("item_update", pierceentity); 
+		io.sockets.in(room.room_id).emit("item_update", pierceentity); 
 	}
 }
 
@@ -159,11 +169,16 @@ var Player = function (startX, startY, startangle) {
 // call this function when new player enters the game 
 function onNewplayer (data) {
 	var newPlayer = new Player(data.x, data.y, data.angle);
+	//set the specific id, username, and room id 
 	newPlayer.id = this.id;	
-	newPlayer.username = info.username;
+	newPlayer.username = data.username;
+	newPlayer.room_id = data.room_id; 
 	
 	
-	if (player_lst.length === 0) {
+	var room = room_List[newPlayer.room_id]; 
+	
+
+	if (room.player_lst.length === 0) {
 		newPlayer.first_place = true; 
 	} else {
 		newPlayer.first_place = false; 
@@ -171,17 +186,17 @@ function onNewplayer (data) {
 	
 	var current_info = {
 		id: newPlayer.id, 
-		username: info.username, 
+		username: newPlayer.username,
 		x: newPlayer.x,
 		y: newPlayer.y,
 		score: newPlayer.score, 
 		angle: newPlayer.angle
 	}; 
 	
-	this.broadcast.emit('new_player', current_info);
+	this.broadcast.to(newPlayer.room_id).emit('new_player', current_info);
 	
-	for (i = 0; i < player_lst.length; i++) {
-		existingPlayer = player_lst[i]
+	for (i = 0; i < room.player_lst.length; i++) {
+		existingPlayer = room.player_lst[i]
 		var player_info = {
 			id: existingPlayer.id,
 			username: existingPlayer.username,
@@ -194,33 +209,34 @@ function onNewplayer (data) {
 	}
 	
 	
-	// give the player the items in the speed pickup list 
-	for (j = 0; j < speed_pickup.length; j++) {
-		var speed_pick = speed_pickup[j];
+
+	for (j = 0; j < room.speed_pickup.length; j++) {
+		var speed_pick = room.speed_pickup[j];
 		this.emit('item_update', speed_pick); 
 	}
 	
-	for (j = 0; j < stun_pickup.length; j++) {
-		var stun_pick = stun_pickup[j];
+	for (j = 0; j < room.stun_pickup.length; j++) {
+		var stun_pick = room.stun_pickup[j];
 		this.emit('item_update', stun_pick); 
 	}
 	
-	for (j = 0; j < pierce_pickup.length; j++) {
-		var pierce_pick = pierce_pickup[j];
+	for (j = 0; j < room.pierce_pickup.length; j++) {
+		var pierce_pick = room.pierce_pickup[j];
 		this.emit('item_update', pierce_pick); 
 	}
 	
 	
-	if (top_scorer.length < 10) {
-		top_scorer.push(newPlayer); 
+	if (room.top_scorer.length < 10) {
+		room.top_scorer.push(newPlayer); 
 	}
-	player_lst.push(newPlayer); 
+	
+	room.player_lst.push(newPlayer); 
 }
 
 function onPlayerAttack (data) {
 	
-	var attacking = find_playerid(data.player_id); 
-	var attacked = find_playerid(data.enemy_id); 
+	var attacking = find_playerid(data.player_id, this.room); 
+	var attacked = find_playerid(data.enemy_id, this.room); 
 	var pierce = data.pierce;
 
 
@@ -232,36 +248,42 @@ function onDamaged (data) {
 }
 
 function onKilled (data) {
-	var removePlayer = find_playerid(this.id); 
+	var room = this.room;
+	var room_id = this.room_id;
+	
+	var removePlayer = find_playerid(this.id, room); 
 	//get rid of players in player list and top_score lists
-	var topplayer = find_topscorer(this.id); 
+	var topplayer = find_topscorer(this.id, room); 
 	
 	console.log(removePlayer.value); 
 	
 	if (removePlayer) {
-		player_lst.splice(player_lst.indexOf(removePlayer), 1);
+		room.player_lst.splice(room.player_lst.indexOf(removePlayer), 1);
+		room.player_num--;
+		avail_roomlist.push(this.room_id); 
 	}
 	if (topplayer) {
-		top_scorer.splice(top_scorer.indexOf(topplayer), 1);
+		room.top_scorer.splice(room.top_scorer.indexOf(topplayer), 1);
 	}
 	
 	//db.account.insert({username: info.username, score: info.score});
 	this.emit('restart_game'); 
-	this.broadcast.to(data.by_id).emit('gained_point', {username: removePlayer.username , value: removePlayer.value, pierce: data.pierce}); 	
-	this.broadcast.emit('remove_player', {id: this.id}); 
+	this.broadcast.to(data.by_id).emit('gained_point', {username: removePlayer.username, id: removePlayer.id, value: removePlayer.value, pierce: data.pierce}); 	
+	this.broadcast.to(room_id).emit('remove_player', {id: this.id}); 
 }
 
+
+
 function onGained (data) {
-	var player = find_playerid(this.id);
+	var player = find_playerid(this.id, this.room);
 	player.value += data.value; 
 	player.score += data.player_score; 
-	info.score = player.score;
 }
 
 function onStunned (data) {
-	var stunned = find_playerid(data.player_id); 
-	var enemyPlayer = find_playerid(data.enemy_id); 
-	this.emit('stunned', {username: enemyPlayer.username}); 
+	var stunned = find_playerid(data.player_id, this.room); 
+	var enemyPlayer = find_playerid(data.enemy_id, this.room); 
+	this.emit('stunned', {id: enemyPlayer.id, username: enemyPlayer.username}); 
 }
 
 function score_update (data) {
@@ -269,11 +291,11 @@ function score_update (data) {
 }
 
 
-function find_topscorer(id) {
-	for (var i = 0; i < top_scorer.length; i++) {
+function find_topscorer(id, room) {
+	for (var i = 0; i < room.top_scorer.length; i++) {
 
-		if (top_scorer[i].id == id) {
-			return top_scorer[i]; 
+		if (room.top_scorer[i].id == id) {
+			return room.top_scorer[i]; 
 		}
 	}
 	
@@ -281,12 +303,12 @@ function find_topscorer(id) {
 }
 
 // find player by the id 
-function find_playerid(id) {
+function find_playerid(id, room) {
 
-	for (var i = 0; i < player_lst.length; i++) {
+	for (var i = 0; i < room.player_lst.length; i++) {
 
-		if (player_lst[i].id == id) {
-			return player_lst[i]; 
+		if (room.player_lst[i].id == id) {
+			return room.player_lst[i]; 
 		}
 	}
 	
@@ -295,7 +317,6 @@ function find_playerid(id) {
 
 function find_item(id, length, list_item) {
 	for (var i = 0; i < length; i++) {
-
 		if (list_item[i].id == id) {
 			return list_item[i]; 
 		}
@@ -309,31 +330,42 @@ function find_item(id, length, list_item) {
 function onClientdisconnect() {
 	console.log('disconnect'); 
 	
-	var removePlayer = find_playerid(this.id); 
-	var topplayer = find_topscorer(this.id); 
-	
-	if (removePlayer) {
-		player_lst.splice(player_lst.indexOf(removePlayer), 1);
-	}
-	if (topplayer) {
-		top_scorer.splice(top_scorer.indexOf(topplayer), 1);
-	}
-	
-	if (info.username) {
-		//db.account.insert({username: info.username, score: info.score}); 
-	}
-	
-	
-	//broadcast to all clients the removed player; 
-	this.broadcast.emit('remove_player', {id: this.id}); 
+	//find the room that the player is in. 
+	var room = this.room;
+	if (room) {
+		var removePlayer = find_playerid(this.id, room); 
+		var topplayer = find_topscorer(this.id, room); 
+		
+		if (removePlayer) {
+			room.player_lst.splice(room.player_lst.indexOf(removePlayer), 1);
+			room.player_num--; 
+			avail_roomlist.push(this.room_id);
+		}
+		if (topplayer) {
+			room.top_scorer.splice(room.top_scorer.indexOf(topplayer), 1);
+		}
+		
+		//if (info.username) {
+			//db.account.insert({username: info.username, score: info.score}); 
+		//}
+		
+		
+		//broadcast to all clients the removed player; 
+		this.broadcast.emit('remove_player', {id: this.id});
+	}	
 }
 
 // when the player connected to socket move, send a message to all other clietns to update the position. 
 function onMoveplayer (data) {
-	var movePlayer = find_playerid(this.id); 
+
+
+	var movePlayer = find_playerid(this.id, this.room); 
+	var room = this.room;
+	
 	
 	if (!movePlayer) {
 		return;
+		console.log('no player'); 
 	}
 	
 	movePlayer.x = data.x; 
@@ -347,7 +379,7 @@ function onMoveplayer (data) {
 	movePlayer.shield_angle = data.shield_angle;
 	
 	//check if the moving player is in first place
-	if (top_scorer[0].id === movePlayer.id) {
+	if (room.top_scorer[0].id === movePlayer.id) {
 		movePlayer.first_place = true; 
 	} else {
 		movePlayer.first_place = false; 
@@ -387,42 +419,101 @@ function onMoveplayer (data) {
 		first_place: movePlayer.first_place
 	}
 	
-	this.broadcast.emit('move_player', data); 
+	this.broadcast.to(this.room_id).emit('move_player', data); 
 }
 
 function onitemPicked (data) {
+	//the room that the item is in;
+	var room = this.room; 
+	
 	if (data.type === 'speed') {
-		var object = find_item(data.id, speed_pickup.length, speed_pickup); 
-		speed_pickup.splice(speed_pickup.indexOf(object), 1);
+		var object = find_item(data.id, room.speed_pickup.length, room.speed_pickup); 
+		room.speed_pickup.splice(room.speed_pickup.indexOf(object), 1);
 	} else if (data.type === 'stun') {
-		var object = find_item(data.id, stun_pickup.length, stun_pickup); 
-		stun_pickup.splice(stun_pickup.indexOf(object), 1);
+		var object = find_item(data.id, room.stun_pickup.length, room.stun_pickup); 
+		room.stun_pickup.splice(room.stun_pickup.indexOf(object), 1);
 	} else if (data.type === 'pierce') {
-		var object = find_item(data.id, pierce_pickup.length, pierce_pickup); 
-		pierce_pickup.splice(pierce_pickup.indexOf(object), 1);
-		
-		var player = find_playerid(this.id); 
+		var object = find_item(data.id, room.pierce_pickup.length, room.pierce_pickup); 
+		room.pierce_pickup.splice(room.pierce_pickup.indexOf(object), 1);
+		var player = find_playerid(this.id, room); 
 		player.pierce = true; 
 	}
 	
 	if (object === false) {
 		console.log('cannot be found' + object.id);
-	}
+	} 
 	
-	io.emit('itemremove', object); 
+	io.sockets.in(this.room_id).emit('itemremove', object); 
 }
 
 function onLoggedin () {
-	console.log(info);
-	this.emit('enter_game', {info: info}); 
+	this.emit('enter_game'); 
 }
 
 function onEntername (data) {
 	
-	info.username = data.username;
-	info.id = this.id; 
-	console.log(this.id); 
-	this.emit('join_game');
+	var room_id = find_Roomid(); 
+	var room = room_List[room_id]; 
+	
+	//join the room; 
+	this.room_id = room_id;
+	this.room = room;
+	this.join(this.room_id);
+	room.player_num+=1; 
+
+		
+	var index = avail_roomlist.indexOf(room_id);
+	
+	console.log(room.max_num); 
+	console.log(room.player_num);
+	if(room.player_num >= room.max_num) {
+		avail_roomlist.splice(index, 1); 
+	}
+	
+
+	
+	this.emit('join_game', {username: data.username, id: this.id, room_id: this.room_id});
+}
+
+function find_Roomid() {
+	var room_number = getRndInteger(0, avail_roomlist.length - 1); 
+	
+	var room_id = avail_roomlist[room_number]; 
+	if (room_id) {
+		return room_id; 
+	} else {
+		create_Room();
+		room_id = avail_roomlist[room_number];
+		return room_id; 
+	}
+}
+
+function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) ) + min;
+}
+
+function create_Room() {
+	var new_roomid = unique.v4();
+	var new_game = new game_setup();
+	new_game.room_id = new_roomid;
+	var max_playernum = find_maxPlayer(); 
+	new_game.max_num = max_playernum; 
+	
+	var new_speed;
+	var new_stun;
+	var new_pierce;
+	
+	addspeed(new_game.speed_num, new_game); 
+	addstun(new_game.stun_num, new_game);
+	addpierce(new_game.pierce_num, new_game); 
+	
+	room_List[new_roomid] = new_game; 
+	
+	avail_roomlist.push(new_roomid);
+}
+
+function find_maxPlayer() {
+	return 10;
 }
 
 
@@ -466,9 +557,6 @@ io.sockets.on('connection', function(socket){
 	
 	
 	Socket_List[socket.id] = socket; 
-	
-	var player = Player(socket.id); 
-	player_lst[socket.id] = player; 
 	
 	
 });

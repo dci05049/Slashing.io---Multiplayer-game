@@ -17,6 +17,7 @@ var set_player = function () {
 	this.first = false; 
 	this.speed_boost = false; 
 	this.stun_immune = false; 
+	// determine if player has pierce
 	this.pierce = false; 
 	
 	
@@ -25,8 +26,17 @@ var set_player = function () {
 	// list of items with body 
 	this.items_p = [];
 	
+	
+	//list of enemies hit with the attack 
+	this.in_cols_hit = [];
+	//list of shield of enemies hit with the player attack 
+	this.in_cols_shieldhit = [];
+	
 	// list of items in collision with the sword 
 	this.in_cols = [];
+	// check if number of sword collision with other shields 
+	this.in_cols_shield = [];
+	
 	
 	//player skills 
 	this.next_attack = gameProperties.current_time; 
@@ -36,7 +46,13 @@ var set_player = function () {
 	//player ranks and gui properties 
 	this.player_id = 0; 
 	this.points = 0;
-	this.player_score = 0; 
+	this.player_score = 0;
+	
+	this.killstreak = 0; 
+	this.streak_duration = 10;
+	this.streak_end = 0;
+	
+	
 	this.text_list = []; 
 	this.txt_playerlst = [];
 	this.displaying_text = false; 
@@ -112,7 +128,7 @@ var set_player = function () {
 		var length = level_lst.length; 
 		
 		for (var i = 0; i < length; i++) {
-			this.display_onPlayer(level_lst[i], 500); 
+			this.display_onPlayer(level_lst[i], 200); 
 		}
 	}
 	
@@ -136,7 +152,7 @@ var set_player = function () {
 					var next_delay = this.txt_playerlst[0].display_time; 
 					player_followtext.alpha = 1; 
 					player_followtext.setText(next_text); 
-					var tween_text = game.add.tween(player_followtext).to( { alpha: 0 }, 1000 , Phaser.Easing.Linear.None , true, delay_time);
+					var tween_text = game.add.tween(player_followtext).to( { alpha: 0 }, 100 , Phaser.Easing.Linear.None , true, delay_time);
 					tween_text.onComplete.add(oncomplete, this); 
 				} else {
 					this.display_onplayertext = false;
@@ -144,7 +160,7 @@ var set_player = function () {
 				}
 			}
 			
-			var tween_text = game.add.tween(player_followtext).to( { alpha: 0 }, 1000 , Phaser.Easing.Linear.None , true, delay_time);
+			var tween_text = game.add.tween(player_followtext).to( { alpha: 0 }, 500 , Phaser.Easing.Linear.None , true, delay_time);
 			tween_text.onComplete.add(oncomplete, this); 
 			
 		} else if (this.displaying_text === true) {
@@ -172,7 +188,7 @@ var set_player = function () {
 					var next_delay = this.text_list[0].display_time; 
 					player_distext.alpha = 1; 
 					player_distext.setText(next_text); 
-					var tween_text = game.add.tween(player_distext).to( { alpha: 0 }, 1000 , Phaser.Easing.Linear.None , true, delay_time);
+					var tween_text = game.add.tween(player_distext).to( { alpha: 0 }, 500 , Phaser.Easing.Linear.None , true, delay_time);
 					tween_text.onComplete.add(oncomplete, this); 
 				} else {
 					this.displaying_text = false;
@@ -189,6 +205,7 @@ var set_player = function () {
 	}
 	
 	this.first_place = function () {
+		//player becomes first place for the first time. 
 		if (this.first === false) {
 			this.first = true; 
 			this.crown = game.add.sprite(0, 30, 'crown');
@@ -197,6 +214,8 @@ var set_player = function () {
 			if (this.item_lst) {
 				this.item_lst.push(this.crown);
 			}
+			this.display_text("Top of the leader board");
+		//player was already first place. 
 		} else {
 			this.crown.x = player.x; 
 			this.crown.y = player.y - 30;
@@ -204,21 +223,22 @@ var set_player = function () {
 	}
 	
 	this.stun_immunepickup = function () {
-		this.display_text('Stun Immune for 5 seconds', 1000);
-		this.display_onPlayer('Stun Immune for 5 Seconds', 1000);
+		this.stun_immune = true; 
+		this.display_text('Stun Immune for 5 seconds', 500);
+		this.display_onPlayer('Stun Immune for 5 Seconds', 500);
 	}
 	
 	this.pierce_pickup = function () {
 		this.pierce = true;
-		this.display_text('Next Attack will Pierce', 1000); 
-		this.display_onPlayer('Next Attack Will Pierce', 1000); 
+		this.display_text('Next Attack will Pierce', 500); 
+		this.display_onPlayer('Next Attack Will Pierce', 500); 
 		sword.loadTexture('sword_pierce');
 	}
 	
 	this.speed_pickup = function () {
 		this.speed_boost = true; 
-		this.display_text('Speed Boost for 3 seconds', 1000); 
-		this.display_onPlayer('Speed Boost for 3 seconds', 1000); 
+		this.display_text('Speed Boost for 3 seconds', 500); 
+		this.display_onPlayer('Speed Boost for 3 seconds', 500); 
 		this.speed = 700;
 	}
 } 
@@ -256,32 +276,38 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	this.player.body.data.shapes[0].sensor = true;
 	
 	
-	this.sword = game.add.sprite(50, 50, "sword");  
-	this.game.physics.p2.enableBody(this.sword,true);
-	this.sword.body.data.shapes[0].sensor = true;
-	this.sword.scale.setTo(0.3, 0.3); 
+	this.sword = game.add.sprite(0, 0, "sword");  
 	this.sword.name = index.toString();
+	game.physics.p2.enableBody(this.sword,true);
+	this.sword.body.data.gravityScale = 0;
+	this.sword.scale.setTo(0.3, 0.3); 
 	this.sword.body.clearShapes();
 	this.sword.body.addRectangle(200, 30, 50, 50);
+	this.sword.body.data.shapes[0].sensor = true;
 	this.sword.pivot.y = - 150;
+	this.sword.body.angle = this.player.body.angle; 
 	this.item_lst.push(this.sword); 
 	
 	
 	//shield
-	this.shield = game.add.sprite(200, 100, 'shield');
+	this.shield = game.add.sprite(0, 0, 'shield');
 	this.shield.name = index.toString();
 	game.physics.p2.enableBody(this.shield, true);
 	this.shield.body.data.gravityScale = 0;
 	this.shield.scale.setTo(0.4,0.4);
 	this.shield.pivot.y = 200;
 	this.shield.body.clearShapes();
-	this.shield.body.addRectangle(100, 100, 0, -80)
+	this.shield.body.addRectangle(200, 100, 0, -80)
 	this.shield.body.data.shapes[0].sensor = true;
+	this.shield.body.angle = this.player.angle;
 	this.item_lst.push(this.shield); 
 	
 	
 	this.style = { font: "16px Arial", fill: "black", align: "center"};
 	this.playertext = game.add.text(100, 100, this.username , this.style);
+	this.playertext.name = "playertext"; 
+	
+	
 	this.playertext.anchor.set(0.5);
 	this.item_lst.push(this.playertext); 
 	
@@ -289,6 +315,7 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	this.enemy_attack = function () {
 		var image_list = []; 
 		var player_image = game.add.sprite(this.player.x, this.player.y, 'arrow');
+		this.sword.attack = true; 
 		player_image.anchor.setTo(0.5, 0.5);
 		player_image.scale.setTo(0.3, 0.3);
 		game.add.tween(player_image).to( { alpha: 0 }, 300 , Phaser.Easing.Linear.None, true);
@@ -330,8 +357,14 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	
 	this.updateremote = function () {
 		for (var k = 0; k < this.item_lst.length; k++) {
-			this.item_lst[k].x = this.player.x; 
-			this.item_lst[k].y = this.player.y - 50; 
+			var name = this.item_lst[k].name; 
+			if (name === "playertext") {
+				this.item_lst[k].x = this.player.x; 
+				this.item_lst[k].y = this.player.y + 50; 
+			} else {
+				this.item_lst[k].x = this.player.x; 
+				this.item_lst[k].y = this.player.y - 50; 
+			}
 		}
 	}
 	
