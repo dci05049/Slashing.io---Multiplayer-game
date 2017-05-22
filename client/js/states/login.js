@@ -3,7 +3,7 @@ console.log(screen.innerHeight);
 var gameProperties = {
     screenWidth: (window.screen.availWidth * window.devicePixelRatio),
 	current_time: 0,
-    screenHeight: (window.screen.availHeight  * window.devicePixelRatio),
+    screenHeight: (window.screen.availHeight - 50  * window.devicePixelRatio),
 	game_elemnt: "gameDiv",
 	in_game: false,
 	connect: false, 
