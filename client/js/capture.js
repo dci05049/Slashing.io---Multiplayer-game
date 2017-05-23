@@ -1,6 +1,9 @@
 
 
 var gamegraphicsassets = {
+	tile_url: "client/assets/sprites/background.jpeg",
+	tile_name: "tile",
+	
 	arrow_url: 'client/assets/sprites/arrow.png',
 	arrow_name: 'arrow',
 	
@@ -78,35 +81,6 @@ function dash_attack () {
 	}
 
 }
-
-
-function createDrawingArea() {
-	//  Dimensions
-	var spriteWidth = 16;
-	var spriteHeight = 16;
-
-	//  Drawing Area
-	var canvas;
-	var canvasBG;
-	var canvasGrid;
-	var canvasZoom = 128;
-
-    game.create.grid('drawingGrid', 1920, 1920, 32, 32, 'rgba(0,191,243,0.8)');
-
-    canvas = game.make.bitmapData(spriteWidth * canvasZoom, spriteHeight * canvasZoom);
-    canvasBG = game.make.bitmapData(canvas.width, canvas.height);
-
-    canvasBG.rect(0, 0, canvasBG.width, canvasBG.height, '#3f5c67');
-
-    var x = 0;
-    var y = 0;
-
-    canvasBG.addToWorld(x, y);
-    canvasGrid = game.add.sprite(x , y , 'drawingGrid');
-    //canvasGrid.crop(new Phaser.Rectangle(0, 0, spriteWidth * canvasZoom, spriteHeight * canvasZoom));
-
-}
-
 
 
 // find the player in the enimes list of the id passed and change its position in the game 
@@ -301,7 +275,7 @@ function onitemremove (data) {
 
 function game_reset () {	
 	game.stage.disableVisibilityChange = true;
-	game.world.setBounds(0, 0, 1920, 1920, false, false, false, false);
+	game.world.setBounds(0, 0, gameProperties.gameWidth, gameProperties.gameHeight, false, false, false, false);
 	game.physics.startSystem(Phaser.Physics.P2JS);
 	game.physics.p2.setBoundsToWorld(false, false, false, false, false)
 	game.physics.p2.gravity.y = 0;
@@ -326,9 +300,14 @@ function onrestart () {
 }
 
 
+
+
 mainState.prototype = {
 	
     preload: function () {
+		// tile
+	
+		
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
 		game.load.image(gamegraphicsassets.sword_name, gamegraphicsassets.sword_url); 
 		game.load.image(gamegraphicsassets.sword_piercename, gamegraphicsassets.sword_pierceurl); 
@@ -338,14 +317,14 @@ mainState.prototype = {
 		game.load.image(gamegraphicsassets.piercepickup_name, gamegraphicsassets.piercepickup_url); 
 		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
 		game.load.image(gamegraphicsassets.crown_name, gamegraphicsassets.crown_url); 
-		game.load.spritesheet('button', 'client/assets/sprites/plus_minus.png', 31, 31);
+		game.load.image(gamegraphicsassets.tile_name, gamegraphicsassets.tile_url); 
     },
  
     create: function () {
-		
 		//resetting the game 
 		game_reset();
-		createDrawingArea();
+		game.add.tileSprite(0,0,gameProperties.gameWidth,gameProperties.gameHeight,'tile');
+		
 		
 
 

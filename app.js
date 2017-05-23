@@ -37,8 +37,8 @@ function game_setup () {
 	this.speed_pickupnum = 5;
 	this.stun_pickupnum = 5;
 	this.pierce_pickupnum = 5;
-	this.canvas_width = 1920;
-	this.canvas_height = 1920;
+	this.canvas_width = 4000;
+	this.canvas_height = 4000;
 
 	this.player_lst = [];
 	this.top_scorer = []; 

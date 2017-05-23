@@ -2,8 +2,10 @@ console.log(screen.innerHeight);
 
 var gameProperties = {
     screenWidth: (window.screen.availWidth * window.devicePixelRatio),
-	current_time: 0,
     screenHeight: (window.screen.availHeight - 50  * window.devicePixelRatio),
+	gameWidth: 4000,
+	gameHeight: 4000,
+	current_time: 0,
 	game_elemnt: "gameDiv",
 	in_game: false,
 	connect: false, 
@@ -12,6 +14,8 @@ var gameProperties = {
 var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.CANVAS, gameProperties.game_elemnt);
 
 game.width = 100;
+
+
 
 
 function potential_connect () {
@@ -46,7 +50,7 @@ signdiv.onclick = function () {
 		gameProperties.in_game = true; 
 		//player_properties.username = signdivusername.value; 
 		form_div.style.display = 'none'; 
-		socket.emit('enter_name', {username: signdivusername.value}); 
+		socket.emit('enter_name', {username: signdivusername.value, gameWidth: gameProperties.gameWidth, gameHeight:gameProperties.gameHeight }); 
 	}
 }
 
