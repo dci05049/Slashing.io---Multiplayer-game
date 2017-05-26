@@ -2,7 +2,7 @@ var player_properties;
 
 var set_player = function () {
 	//in game properties 
-	this.speed = 400; 
+	this.speed = 300; 
 	this.dashspeed = 1000;  
 	this.attack_cooldown = 1; 
 	this.level = 1; 
@@ -59,13 +59,32 @@ var set_player = function () {
 	this.display_onplayertext = false; 
 	
 	
-	this.itemsdestroy = function () {
+	this.destroy_fade = function (sprite, fade_time) {
+		game.add.tween(sprite).to( { alpha: 0 }, fade_time , Phaser.Easing.Linear.None, true);
+		game.time.events.add(fade_time, function () {sprite.destroy(true,false); console.log ('destroy')} , this);
+	}
+	
+	this.itemsdestroy = function (fade_time) {
 		for (var i = 0; i < this.items.length; i++) {
-			this.items[i].destroy(true,false)
+			//this.items[i].destroy(true,false);
+			this.destroy_fade(this.items[i], fade_time); 
 		}
 		for (var k = 0; k < this.items_p.length; k++) {
-			this.items_p[k].destroy(true,false)
+			//this.items_p[k].destroy(true,false);
+			this.destroy_fade(this.items_p[k], fade_time); 
 		}
+	}
+	
+	this.player_killed = function () {
+		player.body.velocity.x = 0; 
+		player.body.velocity.y = 0;
+		player_properties.player_update();
+		player_properties.killed = true; 
+	}
+	
+	this.player_destroy = function (fade_time) {
+		this.itemsdestroy(fade_time); 
+		this.destroy_fade(player, fade_time);
 	}
 	
 	this.player_update = function () {
@@ -254,7 +273,6 @@ function dash_draw () {
 
 var remote_player = function (index, username, game, player, startx, starty, startangle) {
 	this.item_lst = []; 
-	this.itemp_lst = []; 
 	this.id = index;
 	this.username = username;
 	
@@ -349,11 +367,33 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 		this.sword.loadTexture('sword_pierce');
 	}
 	
-	this.destroyitem = function () {
+	
+	this.destroy_fade = function (sprite, fade_time) {
+		game.time.events.add(1000, function () {sprite.destroy(true,false); console.log ('destroy')} , this);
+		game.add.tween(sprite).to( { alpha: 0 }, fade_time , Phaser.Easing.Linear.None, true);
+	}
+	
+	
+	this.itemsdestroy = function () {
 		for (var i = 0; i < this.item_lst.length; i++) {
-			this.item_lst[i].destroy(true,false); 
+			this.destroy_fade(this.item_lst[i]); 
 		}
 	}
+	
+	this.player_killed = function () {
+		this.player.velocity.x = 0; 
+		this.player.killed = true;
+		this.shield.killed = true;
+		this.player.body.velocity.y = 0;
+		this.updateremote();
+		this.killed = true; 
+	}
+	
+	this.player_destroy = function (fade_time) {
+		this.itemsdestroy(fade_time); 
+		this.destroy_fade(this.player, fade_time);
+	}
+	
 	
 	this.updateremote = function () {
 		for (var k = 0; k < this.item_lst.length; k++) {
@@ -365,6 +405,7 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 				this.item_lst[k].x = this.player.x; 
 				this.item_lst[k].y = this.player.y - 50; 
 			}
+			
 		}
 	}
 	
@@ -374,18 +415,23 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 
 // find players to be removed 
 function onRemovePlayer (data) {
-  var removePlayer = findplayerbyid(data.id)
-  // Player not found
-  if (!removePlayer) {
-    console.log('Player not found: ', data.id)
-    return;
-  }
+	var removePlayer = findplayerbyid(data.id);
+	// Player not found
+	if (!removePlayer) {
+		console.log('Player not found: ', data.id)
+		return;
+	}
+	
+	// if the player that needs to be removed is killed instead of disconnecting, 
+	if (data.killed) {
+		add_blood(removePlayer.player.x, removePlayer.player.y);
+		game.time.events.add(1000, function () {removePlayer.player_destroy(1000);} , this);
+	} else {
+		removePlayer.player_destroy();
+	}
 
-  removePlayer.player.destroy(true, false);  
-  removePlayer.destroyitem(); 
-
-  // Remove player from array
-  enemies.splice(enemies.indexOf(removePlayer), 1);
+	// Remove player from array
+	enemies.splice(enemies.indexOf(removePlayer), 1);
 }
 
 

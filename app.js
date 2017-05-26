@@ -267,9 +267,10 @@ function onKilled (data) {
 	}
 	
 	//db.account.insert({username: info.username, score: info.score});
-	this.emit('restart_game'); 
-	this.broadcast.to(data.by_id).emit('gained_point', {username: removePlayer.username, id: removePlayer.id, value: removePlayer.value, pierce: data.pierce}); 	
-	this.broadcast.to(room_id).emit('remove_player', {id: this.id}); 
+	this.emit('killed'); 
+	this.broadcast.to(data.by_id).emit('gained_point', {username: removePlayer.username, id: removePlayer.id, value: removePlayer.value, pierce: data.pierce}); 
+	
+	this.broadcast.to(room_id).emit('remove_player', {id: this.id, killed: true}); 
 }
 
 
@@ -332,6 +333,7 @@ function onClientdisconnect() {
 	
 	//find the room that the player is in. 
 	var room = this.room;
+	//only send the remove player message when the player enters the actual game (room)
 	if (room) {
 		var removePlayer = find_playerid(this.id, room); 
 		var topplayer = find_topscorer(this.id, room); 

@@ -35,7 +35,7 @@ function player_coll (body, bodyB, shapeA, shapeB, equation) {
 
 
 function collide_handle (body, bodyB, shapeA, shapeB, equation) {
-	if (body.sprite) {
+	if (body.sprite || body.sprite.killed) {
 		var key = body.sprite;
 		var id = body.sprite.name; 
 		var current_id = player_properties.player_id;  

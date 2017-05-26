@@ -29,7 +29,12 @@ var gamegraphicsassets = {
 	piercepickup_name: 'piercepickup',
 	
 	crown_url: 'client/assets/sprites/crown.png', 
-	crown_name: 'crown'
+	crown_name: 'crown',
+	
+	blood_url: 'client/assets/sprites/blood.png', 
+	blood_name: 'blood'
+	
+	
 };
 
 var game_config = {
@@ -48,36 +53,39 @@ var mainState = function(game){
 };
 
 function dash_attack () {
-	if (player_properties.in_cols_shield.length >= 1 && !player_properties.pierce) {
-		console.log(player_properties.in_cols_shield);
-		var enemy_id = player_properties.in_cols_shield[0]; 
-
-		socket.emit('player_stunned', {player_id: socket.id, enemy_id: enemy_id});
-	}
 	
-	if (!player_properties.stunned) {
-		player.rotation = movetoPointer(player, player_properties.dashspeed);
-		if (player_properties.canattack == true) {
-			player_properties.next_attack = player_properties.attack_cooldown + gameProperties.current_time; 
-			player_properties.player_attack = true; 
+	if (!player_properties.killed) {
+		if (player_properties.in_cols_shield.length >= 1 && !player_properties.pierce) {
+			console.log(player_properties.in_cols_shield);
+			var enemy_id = player_properties.in_cols_shield[0]; 
+
+			socket.emit('player_stunned', {player_id: socket.id, enemy_id: enemy_id});
 		}
-		player_properties.player_moveX = game.input.mousePointer.worldX;
-		player_properties.player_moveY = game.input.mousePointer.worldY;
 		
-		
-		
-		// make sure the player items follow players * this line is for when the player first loads and spams click 
-		player_properties.player_update();	
-		
-		for (var i = 0; i < player_properties.in_cols.length; i++) {
-			if (!player_properties.stunned && player_properties.player_attack && player_properties.in_cols_shield < 1) {
-				console.log('attack');
-				//emit message of the position of the player 
-				socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
+		if (!player_properties.stunned) {
+			player.rotation = movetoPointer(player, player_properties.dashspeed);
+			if (player_properties.canattack == true) {
+				player_properties.next_attack = player_properties.attack_cooldown + gameProperties.current_time; 
+				player_properties.player_attack = true; 
 			}
+			player_properties.player_moveX = game.input.mousePointer.worldX;
+			player_properties.player_moveY = game.input.mousePointer.worldY;
+			
+			
+			
+			// make sure the player items follow players * this line is for when the player first loads and spams click 
+			player_properties.player_update();	
+			
+			for (var i = 0; i < player_properties.in_cols.length; i++) {
+				if (!player_properties.stunned && player_properties.player_attack && player_properties.in_cols_shield < 1) {
+					console.log('attack');
+					//emit message of the position of the player 
+					socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
+				}
+			}
+			
+			console.log(player_properties.in_cols_shield);
 		}
-		
-		console.log(player_properties.in_cols_shield);
 	}
 
 }
@@ -170,9 +178,10 @@ function onDamaged (data) {
 				player_properties.display_text('Enemy had Pierce'); 
 			}
 			player_properties.display_text('Killed by' + data.by_id, 1000); 
+			player_properties.player_killed();
+			add_blood(player.x, player.y);
 			
 			socket.emit('killed', {id: socket.id, by_id:data.by_id, pierce: data.pierce}); 
-			player_properties.killed = true; 
 		}
 	}
 }
@@ -283,6 +292,8 @@ function game_reset () {
 	game.physics.p2.enableBody(game.physics.p2.walls, false); 
 	// physics start system
 	game.physics.p2.setImpactEvents(true);
+	//setting up tiles 
+	game.add.tileSprite(0,0,gameProperties.gameWidth,gameProperties.gameHeight,'tile');
 		
 	// empty the enemies, items 
 	enemies = [];
@@ -292,20 +303,27 @@ function game_reset () {
 }
 
 
-function onrestart () {
-	
+function onKilled () {
 	game.time.events.add(Phaser.Timer.SECOND * 4, function () {gameProperties.in_game = false; 
 	game.state.start('login', slideOut, slideIn, true, true);
+	//disconnect the socket on death 
 	game.world.removeAll(); socket.disconnect(); } , this); 
 }
 
 
+function add_blood (x,y) {
+	var blood = game.add.sprite(x - 50, y - 50, 'blood');
+	blood.anchor.setTo(0.5,0.5);
+	blood.scale.setTo(3,3);
+	var blood_anim = blood.animations.add('splat');
+	blood.animations.play('splat', 20, false);
+	blood_anim.onComplete.add(function () {blood.destroy(true,false)} , this);
+}
 
 
 mainState.prototype = {
 	
     preload: function () {
-		// tile
 	
 		
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
@@ -318,12 +336,13 @@ mainState.prototype = {
 		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
 		game.load.image(gamegraphicsassets.crown_name, gamegraphicsassets.crown_url); 
 		game.load.image(gamegraphicsassets.tile_name, gamegraphicsassets.tile_url); 
+		game.load.spritesheet(gamegraphicsassets.blood_name, gamegraphicsassets.blood_url, 64, 64, 17);
+		
     },
  
     create: function () {
 		//resetting the game 
 		game_reset();
-		game.add.tileSprite(0,0,gameProperties.gameWidth,gameProperties.gameHeight,'tile');
 		
 		
 
@@ -358,7 +377,7 @@ mainState.prototype = {
 			socket.on ('itemremove', onitemremove); 
 			
 			// check for restart game 
-			socket.on ('restart_game', onrestart); 
+			socket.on ('killed', onKilled); 
 			
 			 //listen for the broadcast.emit from the server for new player; 
 			socket.on('new_player', function(info) {
@@ -380,6 +399,7 @@ mainState.prototype = {
 
 		player_properties = new set_player();
 		player_properties.player_id = socket.id;		
+
 		
 		
 		// setup player 
@@ -419,6 +439,7 @@ mainState.prototype = {
 		shield.body.addRectangle(200, 100, 0, -80);
 		shield.body.angle = player.angle; 
 		shield.body.data.shapes[0].sensor = true;
+	
 		
 		
 		player_properties.items_p.push(shield); 
@@ -438,7 +459,7 @@ mainState.prototype = {
     update: function () {
 		
 		game.world.bringToTop(score_board);
-		
+			
 		if (gameProperties.in_game) {
 			
 			//set the currenttime in game propeties; 
@@ -553,9 +574,9 @@ mainState.prototype = {
 			}
 
 			// kill the player when helath is 0 
-			if (player_properties.player_health <= 0) {
-				player.destroy(true, false); 
-				player_properties.itemsdestroy(); 
+			if (player_properties.player_health <= 0 && !player_properties.destroyed) {
+				game.time.events.add(1000, function () {player_properties.player_destroy(1000);} , this); 
+				player_properties.destroyed = true;
 			}
 			 
 			 

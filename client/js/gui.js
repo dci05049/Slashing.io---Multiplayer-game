@@ -81,8 +81,23 @@ function lbupdate (data) {
 		for (var i = 0;  i < 10; i++) {
 			
 			if (i < data.length) {
+				var username = data[i].username; 
+				var len = username.length;
+				if (len >= 10) {
+					var temp = ""; 
+					for (var j = 0; j < len; j++) {
+						if (j < 5) {
+							temp += username[j]; 
+						}
+					}
+					
+					temp += "...";
+					console.log(temp);
+					username = temp;
+				}
+				
 				board_string = board_string.concat(i + 1,": ");
-				board_string = board_string.concat(data[i].username," ",(data[i].score).toString(),"\n");
+				board_string = board_string.concat(username," ",(data[i].score).toString(),"\n");
 			} else {
 				board_string = board_string.concat("\n");
 			}
