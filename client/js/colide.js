@@ -35,7 +35,13 @@ function player_coll (body, bodyB, shapeA, shapeB, equation) {
 
 
 function collide_handle (body, bodyB, shapeA, shapeB, equation) {
-	if (body.sprite || body.sprite.killed) {
+	if (body.sprite) {
+		//if the enemy is dead already, don't do anything
+		if (body.sprite.killed) {
+			console.log('dead');
+			return; 
+		}
+		
 		var key = body.sprite;
 		var id = body.sprite.name; 
 		var current_id = player_properties.player_id;  

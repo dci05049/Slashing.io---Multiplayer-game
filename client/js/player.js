@@ -369,22 +369,24 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	
 	
 	this.destroy_fade = function (sprite, fade_time) {
-		game.time.events.add(1000, function () {sprite.destroy(true,false); console.log ('destroy')} , this);
+		console.log(fade_time);
+		
+		game.time.events.add(fade_time, function () {sprite.destroy(true,false); console.log ('destroy')} , this);
 		game.add.tween(sprite).to( { alpha: 0 }, fade_time , Phaser.Easing.Linear.None, true);
 	}
 	
 	
-	this.itemsdestroy = function () {
+	this.itemsdestroy = function (fade_time) {
 		for (var i = 0; i < this.item_lst.length; i++) {
-			this.destroy_fade(this.item_lst[i]); 
+			this.destroy_fade(this.item_lst[i], fade_time); 
 		}
 	}
 	
 	this.player_killed = function () {
-		this.player.velocity.x = 0; 
+		this.player.body.velocity.x = 0;
+		this.player.body.velocity.y = 0;		
 		this.player.killed = true;
 		this.shield.killed = true;
-		this.player.body.velocity.y = 0;
 		this.updateremote();
 		this.killed = true; 
 	}
@@ -425,6 +427,7 @@ function onRemovePlayer (data) {
 	// if the player that needs to be removed is killed instead of disconnecting, 
 	if (data.killed) {
 		add_blood(removePlayer.player.x, removePlayer.player.y);
+		removePlayer.player_killed();
 		game.time.events.add(1000, function () {removePlayer.player_destroy(1000);} , this);
 	} else {
 		removePlayer.player_destroy();
