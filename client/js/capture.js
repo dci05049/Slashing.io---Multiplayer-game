@@ -37,6 +37,11 @@ var gamegraphicsassets = {
 	
 };
 
+function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) ) + min;
+}
+
+
 var game_config = {
 
 }
@@ -46,6 +51,12 @@ var enemies = [];
 var speed_pickup = []; 
 var stun_pickup = [];
 var pierce_pickup = [];
+var food_pickup = [];
+var food_color = [];
+food_color = randomColor({
+   count: 10,
+   hue: 'green'
+});
  
  
 var mainState = function(game){
@@ -54,7 +65,8 @@ var mainState = function(game){
 
 function dash_attack () {
 	
-	if (!player_properties.killed) {
+	
+	if (!player_properties.killed && player_properties.canattack && !player_properties.stunned) {
 		if (player_properties.in_cols_shield.length >= 1 && !player_properties.pierce) {
 			console.log(player_properties.in_cols_shield);
 			var enemy_id = player_properties.in_cols_shield[0]; 
@@ -75,16 +87,15 @@ function dash_attack () {
 			
 			// make sure the player items follow players * this line is for when the player first loads and spams click 
 			player_properties.player_update();	
+
 			
 			for (var i = 0; i < player_properties.in_cols.length; i++) {
 				if (!player_properties.stunned && player_properties.player_attack && player_properties.in_cols_shield < 1) {
-					console.log('attack');
 					//emit message of the position of the player 
 					socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
 				}
 			}
-			
-			console.log(player_properties.in_cols_shield);
+
 		}
 	}
 
@@ -100,19 +111,20 @@ function onMoveplayer (data) {
 			console.log('Player not found: ', data.id)
 			return
 		}
-		//player
-		movePlayer.player.body.x = data.x; 
-		movePlayer.player.body.y = data.y; 
-		movePlayer.player.body.angle = data.angle; 
-		//sword
-		movePlayer.sword.body.x = data.sword_x; 
-		movePlayer.sword.body.y = data.sword_y; 
-		movePlayer.sword.body.angle = data.sword_angle; 
-		//shield
-		movePlayer.shield.body.x = data.shield_x; 
-		movePlayer.shield.body.y = data.shield_y; 
-		movePlayer.shield.body.angle = data.shield_angle; 
+				
+		movePlayer.updateremote(data.x, data.y, data.angle);
+
 		
+		//check the difference in sword size, if it is, redraw 
+		if (movePlayer.sword_height != data.sword_height) {
+			movePlayer.destroy_sword(); 
+			
+			movePlayer.draw_sword(data.sword_width, data.sword_height); 
+			movePlayer.sword_height = data.sword_height; 
+			movePlayer.sword_width = data.sword_width; 
+		}
+		
+		//check if the movingplayer is first place 
 		if (data.first_place) {
 			movePlayer.first_place(); 
 		} else if (movePlayer.first === true) {
@@ -122,16 +134,20 @@ function onMoveplayer (data) {
 		}
 		
 		if (data.pierce) {
-			movePlayer.pierce_effect(); 
+			if (!movePlayer.pierce) {
+				movePlayer.destroy_sword(); 
+				movePlayer.pierce_effect(); 
+			}
+			movePlayer.pierce = true;
 		} else {
+			if (movePlayer.pierce) {
+				movePlayer.destroy_sword(); 
+				movePlayer.draw_sword(data.sword_width, data.sword_height); 
+			}
 			movePlayer.pierce = false; 
-			movePlayer.sword.loadTexture('sword');
 		}
-		
-		movePlayer.updateremote();
-		
+
 		if (data.attacking) {
-			console.log('hi'); 
 			movePlayer.enemy_attack(); 
 		} else {
 			movePlayer.sword.attack = false; 
@@ -143,12 +159,23 @@ function onMoveplayer (data) {
 
 function onitemUpdate (data) {
 	var type = data.type;
-	if (type === 'speed') {	
-		speed_pickup.push(new speed_object(data.id, game, type, data.x, data.y)); 
-	} else if (type === 'stun') {
-		stun_pickup.push(new stun_object(data.id, game, type, data.x, data.y));
-	} else if (type === 'pierce') {
-		pierce_pickup.push(new pierce_object(data.id, game, type, data.x, data.y));
+	switch (type) {
+		case "speed": {
+			speed_pickup.push(new speed_object(data.id, game, type, data.x, data.y)); 
+			break;
+		}
+		case "stun": {
+			stun_pickup.push(new stun_object(data.id, game, type, data.x, data.y));
+			break;
+		}
+		case "pierce": {
+			pierce_pickup.push(new pierce_object(data.id, game, type, data.x, data.y));
+			break;
+		}
+		case "food": {
+			food_pickup.push(new food_object(data.id, game, type, data.x, data.y)); 
+			break;
+		}
 	}
 	 
 }
@@ -212,7 +239,7 @@ function onGained (data) {
 
 	var username = data.username; 
 	
-	this.onPlusClick(value);
+	player_properties.onPlusClick(value);
 	player_properties.player_score += value; 
 	player_properties.display_text("You Killed " + username);
 	
@@ -224,8 +251,6 @@ function onGained (data) {
 		player_properties.display_text(player_properties.killstreak + " Kill Streak"); 
 	} else if (player_properties.killstreak >= 2) {
 		player_properties.killstreak = 0;
-		console.log(player_properties.streak_end);
-		console.log(player_properties.killstreak);
 	}
 	
 	player_properties.streak_end = player_properties.streak_duration + gameProperties.current_time; 	
@@ -258,27 +283,29 @@ function is_inrange (number1, number2, tolerance) {
 }
 
 function onitemremove (data) {
-	console.log(data.type);
 	
-	if (data.type === 'speed') {
-		console.log(data); 
-		console.log(speed_pickup);
-		var removeItem = finditembyid(data.id, speed_pickup.length, speed_pickup);
-		console.log('hi');
-	} else if (data.type === 'stun') {
-		var removeItem = finditembyid(data.id, stun_pickup.length, stun_pickup );
-	} else if (data.type === 'pierce') {
-		var removeItem = finditembyid(data.id, pierce_pickup.length, pierce_pickup );
-	} 
-	 
-	if (!removeItem) {
-		console.log('Item not found: ', data.id)
-		return;
+	var removeItem; 
+	switch (data.type) {
+		case 'speed':
+			removeItem = finditembyid(data.id, speed_pickup.length, speed_pickup);
+			speed_pickup.splice(speed_pickup.indexOf(removeItem), 1);
+			break;
+		case 'stun':
+			removeItem = finditembyid(data.id, stun_pickup.length, stun_pickup );
+			stun_pickup.splice(stun_pickup.indexOf(removeItem), 1);
+			break; 
+		case 'pierce':
+			removeItem = finditembyid(data.id, pierce_pickup.length, pierce_pickup );
+			pierce_pickup.splice(pierce_pickup.indexOf(removeItem), 1);
+			break; 
+		case 'food': 
+			removeItem = finditembyid(data.id, food_pickup.length, food_pickup );
+			food_pickup.splice(food_pickup.indexOf(removeItem), 1); 
 	}
+
+	
 	removeItem.item.destroy(true,false);
-	if (removeItem.type === 'speed') {
-		speed_pickup.splice(speed_pickup.indexOf(removeItem), 1);
-	}
+	
 }
 
 
@@ -324,7 +351,8 @@ function add_blood (x,y) {
 mainState.prototype = {
 	
     preload: function () {
-	
+		//physics
+		game.load.physics('physicsData', 'client/assets/physics/polygon.json');
 		
 		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
 		game.load.image(gamegraphicsassets.sword_name, gamegraphicsassets.sword_url); 
@@ -344,8 +372,6 @@ mainState.prototype = {
 		//resetting the game 
 		game_reset();
 		
-		
-
 
 		if (gameProperties.in_game) {
 			// when the socket connects, call the onsocketconnected and send its information to the server 
@@ -414,37 +440,13 @@ mainState.prototype = {
 		player.body.onBeginContact.add(player_coll, this); 
 		
 		
-		sword = game.add.sprite(0, 0, 'sword');
-		game.physics.p2.enableBody(sword, true);
-		sword.body.data.gravityScale = 0;
-		sword.scale.setTo(0.3,0.3);
-		sword.pivot.y = - 150;
-		sword.body.clearShapes();
-		sword.body.addRectangle(200, 30, 50, 50);
-		sword.body.angle = player.angle;
-		// sword collisions 
-		sword.body.data.shapes[0].sensor = true;
-		sword.body.onBeginContact.add(collide_handle, this);	
-		sword.body.onEndContact.add(collide_exit, this); 
-		
-		player_properties.items_p.push(sword); 
-		
-		
-		shield = game.add.sprite(0, 0, 'shield');
-		game.physics.p2.enableBody(shield, true);
-		shield.body.data.gravityScale = 0;
-		shield.scale.setTo(0.4,0.4);
-		shield.pivot.y = 200;
-		shield.body.clearShapes();
-		shield.body.addRectangle(200, 100, 0, -80);
-		shield.body.angle = player.angle; 
-		shield.body.data.shapes[0].sensor = true;
-	
-		
-		
-		player_properties.items_p.push(shield); 
+		//create sword 
+		player_properties.draw_sword(player_properties.sword_width, player_properties.sword_height); 
+		player_properties.draw_handle();
+		//draw shield 
+		player_properties.draw_shield();
 
-		gui_interface.bind(this)(); 
+		gui_interface(); 
 		
 		//keycode; 
 		attack_key = game.input.keyboard.addKey(Phaser.Keyboard.A);
@@ -454,10 +456,11 @@ mainState.prototype = {
 		
 		//camera follow
 		game.camera.follow(player, Phaser.Camera.FOLLOW_LOCKON, 0.5, 0.5);
+		
     },
  
     update: function () {
-		
+
 		game.world.bringToTop(score_board);
 			
 		if (gameProperties.in_game) {
@@ -523,7 +526,8 @@ mainState.prototype = {
 						player_properties.player_attack = false; 
 						
 						player_properties.pierce = false; 
-						sword.loadTexture('sword');
+						player_properties.destroy_sword(); 
+						player_properties.draw_sword(player_properties.sword_width, player_properties.sword_height);
 						
 						//remove all the hit collision list and shield hit collision list of player; 
 						player_properties.in_cols_hit = []; 
@@ -562,6 +566,9 @@ mainState.prototype = {
 					sword_y: sword.y,
 					sword_angle: sword.angle,
 					
+					sword_height: player_properties.sword_height,
+					sword_width: player_properties.sword_width, 
+					
 					shield_x: shield.x, 
 					shield_y: shield.y, 
 					shield_angle: shield.angle,
@@ -591,45 +598,9 @@ mainState.prototype = {
 		
     },
 	
-	onPlusClick: function(value){
-		var new_exp = player_properties.expvalue + value; 
-		player_properties.expvalue = new_exp;
-	    var exp_max = player_properties.exp_max; 
-		
-		
-		if (player_properties.expvalue >= player_properties.exp_max) {
-			this.myHealthBar.setPercent(100); 
-		    player_properties.expvalue = 0;		  
-		    this.myHealthBar.setPercent(0);
-		    player_properties.onLevelup();
-		  
-		    if (new_exp > exp_max) {
-			    var new_val = new_exp - exp_max; 
-			    this.onPlusClick(new_val); 
-		    }
-		    return; 
-	    }
-	  
-	  var exp_percent = (player_properties.expvalue/player_properties.exp_max) * 100; 
-      this.myHealthBar.setPercent(exp_percent);
-	
-    },
-	
-    onMinusClick: function(){
-      player_properties.expvalue = player_properties.expvalue - 10;
-      if(player_properties.expvalue < 0) player_properties.expvalue = 0;
-      this.myHealthBar.setPercent(player_properties.expvalue);
-    },
-	
 		
 	render: function () {
 	
-		/*
-		game.debug.body(player);
-		for (var i = 0; i < enemies.length; i++) {
-			game.debug.body(enemies[i].player);
-		}*/
-		
 	}
 	
 };

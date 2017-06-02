@@ -5,7 +5,6 @@ var set_player = function () {
 	this.speed = 300; 
 	this.dashspeed = 1000;  
 	this.attack_cooldown = 1; 
-	this.level = 1; 
 	this.player_value = 100;
 	this.exp_max = 100;
 	this.player_health = 10;
@@ -47,6 +46,10 @@ var set_player = function () {
 	this.player_id = 0; 
 	this.points = 0;
 	this.player_score = 0;
+	this.level = 1;
+	this.sword_height = 150;
+	this.sword_width = 40;
+	
 	
 	this.killstreak = 0; 
 	this.streak_duration = 10;
@@ -115,10 +118,34 @@ var set_player = function () {
 		this.latest_y = player.body.velocity.y; 
 		player.body.velocity.x = player_properties.latest_x * -1/10; 
 		player.body.velocity.y = player_properties.latest_y * -1/10; 
-		this.stunned_time = 2;
+		this.stunned_time = 1;
 		this.free_time = game.time.totalElapsedSeconds() + player_properties.stunned_time; 
 		this.stunned = true; 
 	}
+	
+	this.onPlusClick = function(value){
+		var new_exp = player_properties.expvalue + value; 
+		player_properties.expvalue = new_exp;
+	    var exp_max = player_properties.exp_max; 
+		
+		
+		if (player_properties.expvalue >= player_properties.exp_max) {
+			this.myHealthBar.setPercent(100); 
+		    player_properties.expvalue = 0;		  
+		    this.myHealthBar.setPercent(0);
+		    player_properties.onLevelup();
+		  
+		    if (new_exp > exp_max) {
+			    var new_val = new_exp - exp_max; 
+			    this.onPlusClick(new_val); 
+		    }
+		    return; 
+	    }
+	  
+	  var exp_percent = (player_properties.expvalue/player_properties.exp_max) * 100; 
+      this.myHealthBar.setPercent(exp_percent);
+	
+    }
 	
 	this.onLevelup = function () {
 		this.level += 1; 
@@ -126,6 +153,10 @@ var set_player = function () {
 		//increase the maximum exp max value
 		this.exp_max *= 1.5; 
 		this.player_value *= 1.3;
+		
+		this.sword_height += 10; 
+		this.destroy_sword(); 
+		this.draw_sword(this.sword_width, this.sword_height);
 		
 		
 		if (this.dashspeed <= 2000) {
@@ -140,7 +171,8 @@ var set_player = function () {
 		var level_lst = [];
 		var index = 0; 
 		
-		//push the text that needs to be displayed in the level_lst; 
+		//push the text that needs to be displayed in the level_lst;
+		level_lst.push('Sword Length Increases');
 		level_lst.push('Movement Speed UP'); 
 		level_lst.push('Dash Speed UP'); 
 		level_lst.push('Player Level UP'); 
@@ -150,6 +182,125 @@ var set_player = function () {
 			this.display_onPlayer(level_lst[i], 200); 
 		}
 	}
+	
+	this.draw_handle = function (width) {
+		//handle
+		handle = game.add.graphics(player.body.x, player.body.y);
+		handle.beginFill(0xFF3300);
+		handle.lineStyle(2, 0xffd900, 1);
+		handle.anchor.setTo(0.5,0.5);
+		
+
+		handle.moveTo(0, 15);
+		handle.lineTo(0, 25);
+		handle.lineTo(-50, 25);
+		handle.lineTo(-50, 15);
+		handle.endFill();
+		
+		game.physics.p2.enableBody(handle, false);
+		
+		handle.pivot.y = -30;
+		handle.pivot.x = 30;
+		player_properties.items_p.push(handle);
+	}
+	
+	
+	this.draw_sword = function (width, height, pierce) {
+	
+		sword = game.add.graphics(player.body.x, player.body.y);
+		sword.name = "sword"; 
+
+		// set a fill and line style
+		if (pierce) {
+			sword.beginFill(0xFF3300);
+			sword.lineStyle(4, 0xffd900, 1);
+			sword.anchor.setTo(0.5,0.5);
+		} else {
+			sword.beginFill(0xFF3300);
+			sword.lineStyle(1, 0xffd900, 1);
+			sword.anchor.setTo(0.5,0.5);
+		}
+			
+		// draw a shape
+		game.physics.p2.enableBody(sword, false);
+		sword.moveTo(0,0);
+		sword.lineTo(height, width/2);
+		sword.lineTo(0, width);
+		sword.endFill();
+		sword.body.clearShapes();
+		
+		//have to add the pivot's y to the offset y of addrectangle
+		
+		this.offset_x = 30; 
+		this.offset_y = -30; 
+	
+		this.data = {
+			sword: [
+						{
+							"density": 2, "friction": 0, "bounce": 0, 
+							"filter": { "categoryBits": 1, "maskBits": 65535 },
+							"shape": [   0 - this.offset_x , 0 - this.offset_y, 
+							height - this.offset_x,  width/2 - this.offset_y  ,  0 - this.offset_x, width - this.offset_y  ,
+							0 - this.offset_x, 0 - this.offset_y ]
+						}  
+				]
+		}
+		
+		sword.body.loadPolygon(null, this.data.sword);
+		
+		
+		//planeShape = new polygons();
+		sword.pivot.y = -30;
+		sword.pivot.x = 30;
+		
+			
+		sword.body.data.gravityScale = 0;
+		//sword.scale.setTo(0.4,0.4);
+		sword.body.angle = player.angle; 
+		sword.body.data.shapes[0].sensor = true;
+		
+		//collision function on sword
+		sword.body.onBeginContact.add(collide_handle, this);	
+		sword.body.onEndContact.add(collide_exit, this);
+		player_properties.items_p.push(sword);
+		
+	}
+	
+	this.destroy_sword = function () {
+		for (var k = 0; k < this.items_p.length; k++) {
+			if (this.items_p[k].name === "sword") {
+				this.items_p[k].destroy(true,false);
+				this.items_p.splice(k, 1); 
+			}
+		}
+	}
+	
+	this.draw_shield = function () {
+		shield = game.add.graphics(player.body.x, player.body.y);
+		shield.name = "shield"; 
+
+		// set a fill and line style
+		shield.beginFill(0xFF3300);
+		shield.lineStyle(2, 0xffd900, 1);
+		shield.drawCircle(0, -70, 130);
+		shield.endFill();
+		
+		shield.anchor.setTo(0.5,0.5);
+			
+		// draw a shape
+		game.physics.p2.enableBody(shield, true);
+		shield.body.clearShapes();
+		//have to add the pivot's y to the offset y of addrectangle
+		shield.body.addCircle(70, 0, -70);
+			
+		shield.body.data.gravityScale = 0;
+		//sword.scale.setTo(0.4,0.4);
+		shield.body.angle = player.angle; 
+		shield.body.data.shapes[0].sensor = true;	
+		player_properties.items_p.push(shield);
+	}
+	
+	
 	
 	this.display_onPlayer = function (string_text, delay_time) {
 		var text_object = {
@@ -186,6 +337,7 @@ var set_player = function () {
 			return; 
 		}
 	}
+	
 	
 	this.display_text = function (string_text, delay_time) {
 		var text_object = {
@@ -251,7 +403,8 @@ var set_player = function () {
 		this.pierce = true;
 		this.display_text('Next Attack will Pierce', 500); 
 		this.display_onPlayer('Next Attack Will Pierce', 500); 
-		sword.loadTexture('sword_pierce');
+		this.destroy_sword();
+		this.draw_sword(this.sword_width, this.sword_height, true); 
 	}
 	
 	this.speed_pickup = function () {
@@ -272,6 +425,8 @@ function dash_draw () {
 
 
 var remote_player = function (index, username, game, player, startx, starty, startangle) {
+	//drawing sword function
+		
 	this.item_lst = []; 
 	this.id = index;
 	this.username = username;
@@ -285,40 +440,126 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	this.player = player; 
 	this.angle = startangle;
 	
+	//enemy sword properties	
+	this.sword_height = 150;
+	this.sword_width = 40; 
+	
 	 
 	this.player = game.add.sprite(startx, starty, 'arrow');
 	this.player.anchor.setTo(0.5, 0.5);
 	this.player.scale.setTo(0.3, 0.3);
 	this.player.name = index.toString(); 
-	this.game.physics.p2.enableBody(this.player,true);
+	this.player.type = "body"; 
+	game.physics.p2.enableBody(this.player,true);
 	this.player.body.data.shapes[0].sensor = true;
+	this.item_lst.push(this.player); 
+	
+	this.draw_sword = function (width, height, pierce) {
+	
+		this.sword = game.add.graphics(this.player.body.x, this.player.body.y);
+		this.sword.name = "sword"; 
+		this.sword.type = "gear"; 
+		
+		// set a fill and line style
+		if (pierce) {
+			this.sword.beginFill(0xFF3300);
+			this.sword.lineStyle(4, 0xffd900, 1);
+			this.sword.anchor.setTo(0.5,0.5);
+		} else {
+			this.sword.beginFill(0xFF3300);
+			this.sword.lineStyle(1, 0xffd900, 1);
+			this.sword.anchor.setTo(0.5,0.5);
+		}
+			
+		// draw a shape
+		game.physics.p2.enableBody(this.sword, false);
+		this.sword.moveTo(0,0);
+		this.sword.lineTo(height, width/2);
+		this.sword.lineTo(0, width);
+		this.sword.endFill();
+		this.sword.body.clearShapes();
+		//have to add the pivot's y to the offset y of addrectangle
+		
+		this.offset_x = 30; 
+		this.offset_y = -30; 
+	
+		this.data = {
+			sword: [
+						{
+							"density": 2, "friction": 0, "bounce": 0, 
+							"filter": { "categoryBits": 1, "maskBits": 65535 },
+							"shape": [   0 - this.offset_x , 0 - this.offset_y, 
+							height - this.offset_x,  width/2 - this.offset_y  ,  0 - this.offset_x, width - this.offset_y  ,
+							0 - this.offset_x, 0 - this.offset_y ]
+						}  
+				]
+		}
+		
+		this.sword.body.loadPolygon(null, this.data.sword);
+		
+		
+		this.sword.pivot.y = -30;
+		this.sword.pivot.x = 30;
+			
+		this.sword.body.data.gravityScale = 0;
+		//sword.scale.setTo(0.4,0.4);
+		this.sword.body.angle = this.player.angle; 
+		this.sword.body.data.shapes[0].sensor = true;
+		this.item_lst.push(this.sword);
+	}
+	
+	this.draw_handle = function (width) {
+		//handle
+		this.handle = game.add.graphics(this.player.body.x, this.player.body.y);
+		this.handle.type = "gear"; 
+		
+		this.handle.beginFill(0xFF3300);
+		this.handle.lineStyle(2, 0xffd900, 1);
+		this.handle.anchor.setTo(0.5,0.5);
+		
+
+		this.handle.moveTo(0, 15);
+		this.handle.lineTo(0, 25);
+		this.handle.lineTo(-50, 25);
+		this.handle.lineTo(-50, 15);
+		this.handle.endFill();
+		
+		this.handle.pivot.y = -30;
+		this.handle.pivot.x = 30;
+		
+		game.physics.p2.enableBody(this.handle,true);
+		this.handle.body.data.shapes[0].sensor = true;
+		
+		this.item_lst.push(this.handle);
+		
+	}
+	
+	this.draw_shield = function () {
+		this.shield = game.add.graphics(this.player.body.x, this.player.body.y);
+		this.shield.name = index.toString();
+		this.shield.type = "gear"; 
+		this.shield.key = "shield";
+
+		// set a fill and line style
+		this.shield.beginFill(0xFF3300);
+		this.shield.lineStyle(2, 0xffd900, 1);
+		this.shield.drawCircle(0, -70, 130);
+		this.shield.endFill();
+
+		game.physics.p2.enableBody(this.shield, true);
+		this.shield.body.data.gravityScale = 0;
+		this.shield.body.clearShapes();
+		this.shield.body.addCircle(70, 0, -70);
+		this.shield.body.data.shapes[0].sensor = true;
+		this.shield.body.angle = this.player.angle;
+		this.item_lst.push(this.shield);
+	}
 	
 	
-	this.sword = game.add.sprite(0, 0, "sword");  
-	this.sword.name = index.toString();
-	game.physics.p2.enableBody(this.sword,true);
-	this.sword.body.data.gravityScale = 0;
-	this.sword.scale.setTo(0.3, 0.3); 
-	this.sword.body.clearShapes();
-	this.sword.body.addRectangle(200, 30, 50, 50);
-	this.sword.body.data.shapes[0].sensor = true;
-	this.sword.pivot.y = - 150;
-	this.sword.body.angle = this.player.body.angle; 
-	this.item_lst.push(this.sword); 
-	
-	
-	//shield
-	this.shield = game.add.sprite(0, 0, 'shield');
-	this.shield.name = index.toString();
-	game.physics.p2.enableBody(this.shield, true);
-	this.shield.body.data.gravityScale = 0;
-	this.shield.scale.setTo(0.4,0.4);
-	this.shield.pivot.y = 200;
-	this.shield.body.clearShapes();
-	this.shield.body.addRectangle(200, 100, 0, -80)
-	this.shield.body.data.shapes[0].sensor = true;
-	this.shield.body.angle = this.player.angle;
-	this.item_lst.push(this.shield); 
+	//draw sword 
+	this.draw_sword(this.sword_width, this.sword_height); 
+	this.draw_handle();
+	this.draw_shield(); 
 	
 	
 	this.style = { font: "16px Arial", fill: "black", align: "center"};
@@ -347,6 +588,16 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 			socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
 		}
 	}
+	
+	this.destroy_sword = function () {
+		for (var k = 0; k < this.item_lst.length; k++) {
+			console.log(this.item_lst[k].name);
+			if (this.item_lst[k].name === "sword") {
+				this.item_lst[k].destroy(true,false);
+				this.item_lst.splice(k, 1); 
+			}
+		}
+	}
 
 	
 	this.first_place = function () {
@@ -363,8 +614,7 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 	}
 	
 	this.pierce_effect = function () {
-		this.pierce = true;
-		this.sword.loadTexture('sword_pierce');
+		this.draw_sword(this.sword_width, this.sword_height, true); 
 	}
 	
 	
@@ -387,25 +637,28 @@ var remote_player = function (index, username, game, player, startx, starty, sta
 		this.player.body.velocity.y = 0;		
 		this.player.killed = true;
 		this.shield.killed = true;
-		this.updateremote();
 		this.killed = true; 
 	}
 	
 	this.player_destroy = function (fade_time) {
 		this.itemsdestroy(fade_time); 
-		this.destroy_fade(this.player, fade_time);
 	}
 	
 	
-	this.updateremote = function () {
+	this.updateremote = function (player_x, player_y, player_angle) {
 		for (var k = 0; k < this.item_lst.length; k++) {
 			var name = this.item_lst[k].name; 
+			var type = this.item_lst[k].type; 
 			if (name === "playertext") {
-				this.item_lst[k].x = this.player.x; 
-				this.item_lst[k].y = this.player.y + 50; 
+				this.item_lst[k].x = player_x;  
+				this.item_lst[k].y = player_y + 50; 
+			} else if (type === "gear" || type === "body") {
+				this.item_lst[k].body.angle = player_angle;
+				this.item_lst[k].body.x = player_x; 
+				this.item_lst[k].body.y = player_y; 
 			} else {
-				this.item_lst[k].x = this.player.x; 
-				this.item_lst[k].y = this.player.y - 50; 
+				this.item_lst[k].x = player_x;  
+				this.item_lst[k].y = player_y - 50; 
 			}
 			
 		}
@@ -430,7 +683,8 @@ function onRemovePlayer (data) {
 		removePlayer.player_killed();
 		game.time.events.add(1000, function () {removePlayer.player_destroy(1000);} , this);
 	} else {
-		removePlayer.player_destroy();
+		removePlayer.player_killed();
+		removePlayer.player_destroy(1000);
 	}
 
 	// Remove player from array

@@ -1,14 +1,14 @@
 function experience_bar() {
-	this.barre1_x = gameProperties.screenWidth/2;
-	this.barre1_y = gameProperties.screenHeight - 30;
+	player_properties.barre1_x = gameProperties.screenWidth/2;
+	player_properties.barre1_y = gameProperties.screenHeight - 30;
 
 
-	this.expvalue = 0;
-	player_properties.expvalue = this.expvalue;
-	this.myHealthBar = new HealthBar(game, {x: this.barre1_x, y: this.barre1_y, width: 400});
-	this.myHealthBar.animationDuration = 500; 
-	this.myHealthBar.setPercent(0); 
-	this.myHealthBar.setFixedToCamera(true);
+	player_properties.expvalue = 0;
+	player_properties.expvalue = player_properties.expvalue;
+	player_properties.myHealthBar = new HealthBar(game, {x: player_properties.barre1_x, y: player_properties.barre1_y, width: 400});
+	player_properties.myHealthBar.animationDuration = 500; 
+	player_properties.myHealthBar.setPercent(0); 
+	player_properties.myHealthBar.setFixedToCamera(true);
 }
 
 
@@ -20,7 +20,7 @@ function gui_interface () {
 	score_board.scale.setTo(1, 1.2);
 	score_board.fixedToCamera = true;
 	
-	experience_bar.bind(this)(); 
+	experience_bar(); 
 	
 	
 	var style = { font: "13px Press Start 2P", fill: "black", align: "center"};

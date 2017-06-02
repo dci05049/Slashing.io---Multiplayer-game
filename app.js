@@ -17,6 +17,7 @@ app.use('/client',express.static(__dirname + '/client'));
 var speed = require('./entity/speed.js');
 var stun = require('./entity/stun.js');
 var pierce = require('./entity/stun.js');
+var food = require('./entity/food.js'); 
 
 
 serv.listen(process.env.PORT || 2000);
@@ -34,6 +35,7 @@ function game_setup () {
 	this.player_num = 0;
 	this.max_num; 
 	this.player_lst = [];
+	this.food_pickupnum = 150; 
 	this.speed_pickupnum = 5;
 	this.stun_pickupnum = 5;
 	this.pierce_pickupnum = 5;
@@ -43,6 +45,7 @@ function game_setup () {
 	this.player_lst = [];
 	this.top_scorer = []; 
 
+	this.food_pickup = []; 
 	this.speed_pickup = [];
 	this.stun_pickup = []; 
 	this.pierce_pickup = [];
@@ -71,11 +74,12 @@ function heartbeat () {
 		//change the number of players in the list 
 		unique_room.player_num = unique_room.player_lst.length;
 		
-		
+		this.food_num = unique_room.food_pickupnum - unique_room.food_pickup.length; 
 		this.speed_num = unique_room.speed_pickupnum - unique_room.speed_pickup.length; 
 		this.stun_num = unique_room.stun_pickupnum - unique_room.stun_pickup.length;
 		this.pierce_num = unique_room.pierce_pickupnum - unique_room.pierce_pickup.length;
 		
+		addfood(this.food_num, unique_room);
 		addstun(this.stun_num, unique_room);
 		addspeed(this.speed_num, unique_room); 
 		addpierce(this.pierce_num, unique_room);
@@ -97,6 +101,24 @@ function heartbeat () {
 	}
 }
 
+
+function addfood(n, room) {
+	var new_food = []; 
+	
+	if (n <= 0) {
+		return; 
+	}
+	
+	for (var i = 0; i < n; i++) {
+		var unique_id = unique.v4(); 
+		var foodentity = new food(room.canvas_width, room.canvas_height, 'food', unique_id);
+		room.food_pickup.push(foodentity); 
+		new_food.push(foodentity); 
+		io.sockets.in(room.room_id).emit("item_update", foodentity); 
+	}
+}
+
+
 function addspeed(n, room) {
 	var new_speed = []; 
 	
@@ -111,8 +133,6 @@ function addspeed(n, room) {
 		new_speed.push(speedentity); 
 		io.sockets.in(room.room_id).emit("item_update", speedentity); 
 	}
-	
-	
 }
 
 function addstun(n, room) {
@@ -208,7 +228,10 @@ function onNewplayer (data) {
 		this.emit('new_player', player_info);
 	}
 	
-	
+	for (j = 0; j < room.food_pickup.length; j++) {
+		var food_pick = room.food_pickup[j];
+		this.emit('item_update', food_pick); 
+	}
 
 	for (j = 0; j < room.speed_pickup.length; j++) {
 		var speed_pick = room.speed_pickup[j];
@@ -375,6 +398,8 @@ function onMoveplayer (data) {
 	movePlayer.angle = data.angle; 
 	movePlayer.sword_x = data.sword_x;
 	movePlayer.sword_y = data.sword_y; 
+	movePlayer.sword_width = data.sword_width;
+	movePlayer.sword_height = data.sword_height;
 	movePlayer.sword_angle = data.sword_angle; 
 	movePlayer.shield_x = data.shield_x;
 	movePlayer.shield_y = data.shield_y;
@@ -412,6 +437,9 @@ function onMoveplayer (data) {
 		sword_y: movePlayer.sword_y, 
 		sword_angle: movePlayer.sword_angle, 
 		
+		sword_height: movePlayer.sword_height, 
+		sword_width: movePlayer.sword_width,
+		
 		shield_x: movePlayer.shield_x,
 		shield_y: movePlayer.shield_y, 
 		shield_angle:movePlayer.shield_angle,
@@ -439,7 +467,11 @@ function onitemPicked (data) {
 		room.pierce_pickup.splice(room.pierce_pickup.indexOf(object), 1);
 		var player = find_playerid(this.id, room); 
 		player.pierce = true; 
+	} else if (data.type === 'food') {
+		var object = find_item(data.id, room.food_pickup.length, room.food_pickup); 
+		room.food_pickup.splice(room.food_pickup.indexOf(object), 1);
 	}
+	
 	
 	if (object === false) {
 		console.log('cannot be found' + object.id);

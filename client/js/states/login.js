@@ -11,7 +11,7 @@ var gameProperties = {
 	connect: false, 
 };
 
-var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.CANVAS, gameProperties.game_elemnt);
+var game = new Phaser.Game(gameProperties.screenWidth, gameProperties.screenHeight, Phaser.AUTO, gameProperties.game_elemnt);
 
 game.width = 100;
 

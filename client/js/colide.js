@@ -30,7 +30,10 @@ function player_coll (body, bodyB, shapeA, shapeB, equation) {
 		player_properties.pierce_pickup(); 
 		
 		socket.emit('item_picked', {id: key, type: item_type}); 
-	} 
+	} else if (item_type === 'food') {
+		player_properties.onPlusClick(10);
+		socket.emit('item_picked', {id: key, type: item_type}); 
+	}
 }
 
 
@@ -94,14 +97,6 @@ function collide_handle (body, bodyB, shapeA, shapeB, equation) {
 			}
 			
 			
-		} else if (body.sprite.key === 'sword' && player_properties.player_attack) {
-			// check if the other player is attacking too. if they are, stop the movement 
-			if (body.sprite.attack) {
-				player_properties.player_attack = false; 
-				console.log('true');
-				player.body.velocity.x = 0; 
-				player.body.velocity.y = 0;
-			}
 		} else {
 			return;
 		}
@@ -115,7 +110,6 @@ function collide_exit (body, bodyB, shapeA, shapeB, equation) {
 		var current_id = player_properties.player_id; 
 	
 		if (body.sprite.key === 'arrow') {
-			console.log('collide exit');
 			// get rid of all collisions between sword and enemy body 
 			for (var i = 0; i < player_properties.in_cols.length; i++) {
 				if (player_properties.in_cols[i] === col_id) {

@@ -1,0 +1,10 @@
+
+{
+	"sword": [
+				{
+					"density": 2, "friction": 0, "bounce": 0, 
+					"filter": { "categoryBits": 1, "maskBits": 65535 },
+					"shape": [   -30, 30,  120,  50  ,  -30, 70  ,  -30, 30 ]
+				}  
+		]
+}
