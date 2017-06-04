@@ -305,6 +305,7 @@ function onitemremove (data) {
 		case 'food': 
 			removeItem = finditembyid(data.id, food_pickup.length, food_pickup );
 			food_pickup.splice(food_pickup.indexOf(removeItem), 1); 
+			break;
 	}
 
 	
@@ -331,6 +332,7 @@ function game_reset () {
 	speed_pickup = []; 
 	stun_pickup = [];
 	pierce_pickup = [];
+	food_pickup = [];
 }
 
 
