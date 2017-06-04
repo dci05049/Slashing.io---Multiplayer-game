@@ -20,6 +20,29 @@ var set_player = function () {
 	this.pierce = false; 
 	
 	
+	this.colorbase = color_base[getRndInteger(0,2)];  
+
+	
+	this.shield_color = randomColor({
+		luminosity: 'dark',
+		hue: this.colorbase
+	}); 
+	this.shield_color = this.shield_color.replace("#", "0x"); 
+	
+	this.sword_color = randomColor({
+		luminosity: 'dark',
+		hue: this.colorbase
+	}); 
+	this.sword_color = this.sword_color.replace("#", "0x"); 
+	
+	this.handle_color = randomColor({
+			luminosity: 'dark',
+			hue: this.colorbase
+		}); 
+		
+	this.handle_color = this.handle_color.replace("#", "0x"); 
+	
+	
 	// list of items 
 	this.items = []; 
 	// list of items with body 
@@ -186,7 +209,7 @@ var set_player = function () {
 	this.draw_handle = function (width) {
 		//handle
 		handle = game.add.graphics(player.body.x, player.body.y);
-		handle.beginFill(0xFF3300);
+		handle.beginFill(this.handle_color);
 		handle.lineStyle(2, 0xffd900, 1);
 		handle.anchor.setTo(0.5,0.5);
 		
@@ -212,11 +235,11 @@ var set_player = function () {
 
 		// set a fill and line style
 		if (pierce) {
-			sword.beginFill(0xFF3300);
+			sword.beginFill(this.sword_color);
 			sword.lineStyle(4, 0xffd900, 1);
 			sword.anchor.setTo(0.5,0.5);
 		} else {
-			sword.beginFill(0xFF3300);
+			sword.beginFill(this.sword_color);
 			sword.lineStyle(1, 0xffd900, 1);
 			sword.anchor.setTo(0.5,0.5);
 		}
@@ -280,7 +303,7 @@ var set_player = function () {
 		shield.name = "shield"; 
 
 		// set a fill and line style
-		shield.beginFill(0xFF3300);
+		shield.beginFill(this.shield_color);
 		shield.lineStyle(2, 0xffd900, 1);
 		shield.drawCircle(0, -70, 130);
 		shield.endFill();
@@ -288,7 +311,7 @@ var set_player = function () {
 		shield.anchor.setTo(0.5,0.5);
 			
 		// draw a shape
-		game.physics.p2.enableBody(shield, true);
+		game.physics.p2.enableBody(shield, false);
 		shield.body.clearShapes();
 		//have to add the pivot's y to the offset y of addrectangle
 		shield.body.addCircle(70, 0, -70);

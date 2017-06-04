@@ -53,10 +53,14 @@ var stun_pickup = [];
 var pierce_pickup = [];
 var food_pickup = [];
 var food_color = [];
+
 food_color = randomColor({
    count: 10,
    hue: 'green'
 });
+
+//color configuration 
+var color_base = ['red', 'blue', 'green']; 
  
  
 var mainState = function(game){
@@ -350,7 +354,12 @@ function add_blood (x,y) {
 
 mainState.prototype = {
 	
-    preload: function () {
+    preload: function () {	
+
+	game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL;
+	game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+	game.scale.refresh();
+		
 		//physics
 		game.load.physics('physicsData', 'client/assets/physics/polygon.json');
 		
@@ -365,6 +374,7 @@ mainState.prototype = {
 		game.load.image(gamegraphicsassets.crown_name, gamegraphicsassets.crown_url); 
 		game.load.image(gamegraphicsassets.tile_name, gamegraphicsassets.tile_url); 
 		game.load.spritesheet(gamegraphicsassets.blood_name, gamegraphicsassets.blood_url, 64, 64, 17);
+		
 		
     },
  
@@ -432,7 +442,7 @@ mainState.prototype = {
 		player = game.add.sprite(0, 0, 'arrow');
 		player.anchor.setTo(0.5, 0.5);
 		player.scale.setTo(0.3, 0.3);
-		game.physics.p2.enableBody(player, true); 
+		game.physics.p2.enableBody(player, false); 
 		player.name = player_properties.player_id; 
 		
 		// player body collisions 

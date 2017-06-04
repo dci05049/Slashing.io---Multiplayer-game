@@ -1,8 +1,8 @@
-console.log(screen.innerHeight);
+
 
 var gameProperties = {
-    screenWidth: (window.screen.availWidth * window.devicePixelRatio),
-    screenHeight: (window.screen.availHeight - 100  * window.devicePixelRatio),
+    screenWidth: window.innerWidth * window.devicePixelRatio,
+    screenHeight: window.innerHeight * window.devicePixelRatio,
 	gameWidth: 4000,
 	gameHeight: 4000,
 	current_time: 0,
