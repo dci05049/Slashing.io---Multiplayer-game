@@ -1,6 +1,6 @@
 function experience_bar() {
 	player_properties.barre1_x = gameProperties.screenWidth/2;
-	player_properties.barre1_y = gameProperties.screenHeight - 30;
+	player_properties.barre1_y = gameProperties.screenHeight - 85;
 
 
 	player_properties.expvalue = 0;

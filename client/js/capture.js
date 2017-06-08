@@ -354,28 +354,21 @@ function add_blood (x,y) {
 }
 
 
+canvas_width = window.innerWidth * window.devicePixelRatio;
+canvas_height = window.innerHeight * window.devicePixelRatio;
+aspect_ratio = canvas_width / canvas_height;
+if (aspect_ratio > 1) scale_ratio = canvas_height / 1000;
+else scale_ratio = canvas_width / 1000;
+
+
+
 mainState.prototype = {
 	
-    preload: function () {	
-
-	game.scale.fullScreenScaleMode = Phaser.ScaleManager.SHOW_ALL;
-	game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-	game.scale.refresh();
-		
+    preload: function () {
 		//physics
-		game.load.physics('physicsData', 'client/assets/physics/polygon.json');
+
+		game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL  ;
 		
-		game.load.image(gamegraphicsassets.arrow_name, gamegraphicsassets.arrow_url); 
-		game.load.image(gamegraphicsassets.sword_name, gamegraphicsassets.sword_url); 
-		game.load.image(gamegraphicsassets.sword_piercename, gamegraphicsassets.sword_pierceurl); 
-		game.load.image(gamegraphicsassets.shield_name, gamegraphicsassets.shield_url); 
-		game.load.image(gamegraphicsassets.speedpickup_name, gamegraphicsassets.speedpickup_url); 
-		game.load.image(gamegraphicsassets.stunpickup_name, gamegraphicsassets.stunpickup_url);
-		game.load.image(gamegraphicsassets.piercepickup_name, gamegraphicsassets.piercepickup_url); 
-		game.load.image(gamegraphicsassets.scoreboard_name, gamegraphicsassets.scorebord_url); 
-		game.load.image(gamegraphicsassets.crown_name, gamegraphicsassets.crown_url); 
-		game.load.image(gamegraphicsassets.tile_name, gamegraphicsassets.tile_url); 
-		game.load.spritesheet(gamegraphicsassets.blood_name, gamegraphicsassets.blood_url, 64, 64, 17);
 		
 		
     },
@@ -383,7 +376,6 @@ mainState.prototype = {
     create: function () {
 		//resetting the game 
 		game_reset();
-		
 
 		if (gameProperties.in_game) {
 			// when the socket connects, call the onsocketconnected and send its information to the server 
@@ -443,7 +435,7 @@ mainState.prototype = {
 		// setup player 
 		player = game.add.sprite(0, 0, 'arrow');
 		player.anchor.setTo(0.5, 0.5);
-		player.scale.setTo(0.3, 0.3);
+		player.scale.set(0.3);
 		game.physics.p2.enableBody(player, false); 
 		player.name = player_properties.player_id; 
 		

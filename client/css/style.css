@@ -1,10 +1,12 @@
+
 body {
-  background: #AFF7F0;
-  font-family: 'Press Start 2P', cursive;
-  overflow: hidden;
-  margin: 0; padding: 0; border: 0;
-  height: 100%;
+   margin: 0px;
+    position: relative;
+    background-color: #120E1C;
+
 }
+
+/*
 
 .app {
   height: 500px;
@@ -168,3 +170,5 @@ button.fab {
 .header.hidden {
   top: -100%;
 }
+*/
+
