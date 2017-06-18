@@ -1,4 +1,5 @@
-
+game_config = {
+}
 
 var gamegraphicsassets = {
 	tile_url: "client/assets/sprites/background.jpeg",
@@ -42,17 +43,15 @@ function getRndInteger(min, max) {
 }
 
 
-var game_config = {
-
-}
-
-
 var enemies = []; 
 var speed_pickup = []; 
 var stun_pickup = [];
 var pierce_pickup = [];
 var food_pickup = [];
 var food_color = [];
+var scale_sprites = []; 
+
+
 
 food_color = randomColor({
    count: 10,
@@ -164,6 +163,7 @@ function onMoveplayer (data) {
 function onitemUpdate (data) {
 	var type = data.type;
 	switch (type) {
+		/*
 		case "speed": {
 			speed_pickup.push(new speed_object(data.id, game, type, data.x, data.y)); 
 			break;
@@ -176,6 +176,8 @@ function onitemUpdate (data) {
 			pierce_pickup.push(new pierce_object(data.id, game, type, data.x, data.y));
 			break;
 		}
+		
+		*/
 		case "food": {
 			food_pickup.push(new food_object(data.id, game, type, data.x, data.y)); 
 			break;
@@ -262,7 +264,6 @@ function onGained (data) {
 	
 	// get rid of the in_cols list of the slain enemy id; 
 	for (var i = 0; i < player_properties.in_cols.length; i++) {
-		console.log(data.id); 
 		
 		if (player_properties.in_cols[i] === data.id) {
 			player_properties.in_cols.splice(i, 1);
@@ -325,8 +326,10 @@ function game_reset () {
 	// physics start system
 	game.physics.p2.setImpactEvents(true);
 	//setting up tiles 
-	game.add.tileSprite(0,0,gameProperties.gameWidth,gameProperties.gameHeight,'tile');
-		
+	var tile_set = game.add.tileSprite(0,0,gameProperties.gameWidth,gameProperties.gameHeight,'tile');
+	tile_set.scale.set(scale_ratio); 	
+	scale_sprites.push(tile_set);
+	
 	// empty the enemies, items 
 	enemies = [];
 	speed_pickup = []; 
@@ -352,30 +355,20 @@ function add_blood (x,y) {
 	blood.animations.play('splat', 20, false);
 	blood_anim.onComplete.add(function () {blood.destroy(true,false)} , this);
 }
-
-
-canvas_width = window.innerWidth * window.devicePixelRatio;
-canvas_height = window.innerHeight * window.devicePixelRatio;
-aspect_ratio = canvas_width / canvas_height;
-if (aspect_ratio > 1) scale_ratio = canvas_height / 1000;
-else scale_ratio = canvas_width / 1000;
-
-
+ 
 
 mainState.prototype = {
 	
     preload: function () {
 		//physics
 
-		game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL  ;
-		
-		
-		
+
     },
  
     create: function () {
 		//resetting the game 
 		game_reset();
+
 
 		if (gameProperties.in_game) {
 			// when the socket connects, call the onsocketconnected and send its information to the server 
@@ -430,25 +423,53 @@ mainState.prototype = {
 		player_properties = new set_player();
 		player_properties.player_id = socket.id;		
 
+		player = game.add.graphics(0, 0);
+		player.scale.set(scale_ratio);
+		player.name = player_properties.player_id; 
+		player.jason = "player";
+
+		// set a fill and line style
+		player.beginFill(0xffd900);
+		player.lineStyle(2, 0xffd900, 1);
+		player.drawCircle(0, 0, 140);
+		player.endFill();
+		player.anchor.setTo(0.5,0.5);
+
+			
+		// draw a shape
+		game.physics.p2.enableBody(player, true);
+		player.body_type = "circle";
+		player.body.clearShapes();
+		player.body_size = 70; 
+		player.body_offsetX = 0;
+		player.body_offsetY = 0;
+		
+		player.body.addCircle(player.body_size * scale_ratio, 0 , 0); 
+		player.body.data.shapes[0].sensor = true;
+		player.body.onBeginContact.add(player_coll, this); 
+		scale_sprites.push(player); 
 		
 		
+		/*
 		// setup player 
 		player = game.add.sprite(0, 0, 'arrow');
+		player.scale.set(scale_ratio);
+		scale_sprites.push(player); 
 		player.anchor.setTo(0.5, 0.5);
-		player.scale.set(0.3);
-		game.physics.p2.enableBody(player, false); 
+		game.physics.p2.enableBody(player, true); 
 		player.name = player_properties.player_id; 
+
 		
 		// player body collisions 
 		player.body.data.shapes[0].sensor = true;
 		player.body.onBeginContact.add(player_coll, this); 
+		*/
 		
 		
 		//create sword 
 		player_properties.draw_sword(player_properties.sword_width, player_properties.sword_height); 
-		player_properties.draw_handle();
-		//draw shield 
 		player_properties.draw_shield();
+		player_properties.draw_handle();
 
 		gui_interface(); 
 		
@@ -464,8 +485,8 @@ mainState.prototype = {
     },
  
     update: function () {
-
 		game.world.bringToTop(score_board);
+		
 			
 		if (gameProperties.in_game) {
 			

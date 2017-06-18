@@ -6,13 +6,22 @@ var speed_object = function (id, game, type, startx, starty, value) {
 	this.posy = starty; 
 	this.powerup = value;
 	
-	this.item = game.add.sprite(this.posx, this.posy, 'speedpickup'); 
+	this.item = game.add.sprite(this.posx * scale_ratio, this.posy * scale_ratio, 'speedpickup'); 
 	this.item.type = 'speed';
 	this.item.id = id;
-	this.item.scale.setTo(0.15, 0.15);
-	
+	this.item.scale.set(scale_ratio);
 	this.game.physics.p2.enableBody(this.item);
+	this.item.body.clearShapes();
+	this.item.body_size = 70; 
+	this.item.body_offsetX = 0;
+	this.item.body_offsetY = -70; 
+	this.item.body.addCircle(shield.body_size * scale_ratio, 0, shield.body_offsetY * scale_ratio);
+	
+	this.item.body_type = "circle";
+	
 	this.item.body.data.shapes[0].sensor = true;
+	scale_sprites.push(this.item);
+	console.log(scale_sprites);
 }
 
 var stun_object = function (id, game, type, startx, starty, value) {
@@ -23,13 +32,21 @@ var stun_object = function (id, game, type, startx, starty, value) {
 	this.posy = starty; 
 	this.powerup = value;
 	
-	this.item = game.add.sprite(this.posx, this.posy, 'stunpickup'); 
+	this.item = game.add.sprite(this.posx * scale_ratio, this.posy * scale_ratio, 'stunpickup'); 
 	this.item.type = 'stun';
 	this.item.id = id;
-	this.item.scale.setTo(0.15, 0.15);
+	this.item.scale.set(scale_ratio);
 	
-	this.game.physics.p2.enableBody(this.item);
+	this.game.physics.p2.enableBody(this.item, true);
+	this.item.body.clearShapes();
+	this.item.body_size = 70; 
+	this.item.body_offsetX = 0;
+	this.item.body_offsetY = -70; 
+	this.item.body.addCircle(shield.body_size * scale_ratio, 0, shield.body_offsetY * scale_ratio);
+	this.item.body_type = "circle";
+	
 	this.item.body.data.shapes[0].sensor = true;
+	scale_sprites.push(this.item);
 }
 
 
@@ -41,13 +58,21 @@ var pierce_object = function (id, game, type, startx, starty, value) {
 	this.posy = starty; 
 	this.powerup = value;
 	
-	this.item = game.add.sprite(this.posx, this.posy, 'piercepickup'); 
+	this.item = game.add.sprite(this.posx * scale_ratio, this.posy * scale_ratio, 'piercepickup'); 
 	this.item.type = 'pierce';
 	this.item.id = id;
-	this.item.scale.setTo(0.15, 0.15);
+	this.item.scale.set(scale_ratio);
 	
-	this.game.physics.p2.enableBody(this.item);
+	this.game.physics.p2.enableBody(this.item, true);
+	this.item.body.clearShapes();
+	this.item.body_size = 70; 
+	this.item.body_offsetX = 0;
+	this.item.body_offsetY = -70; 
+	this.item.body.addCircle(shield.body_size * scale_ratio, 0, shield.body_offsetY * scale_ratio);
+	
+	this.item.body_type = "circle";
 	this.item.body.data.shapes[0].sensor = true;
+	scale_sprites.push(this.item);
 }
 
 
@@ -60,7 +85,8 @@ var food_object = function (id, game, type, startx, starty, value) {
 	this.powerup = value;
 	
 	
-	this.item = game.add.graphics(this.posx, this.posy);
+	this.item = game.add.graphics(this.posx * scale_ratio, this.posy * scale_ratio);
+	this.item.scale.set(scale_ratio);
 
 	// set a fill and line style
 	var index = getRndInteger(0, 10); 
@@ -76,10 +102,19 @@ var food_object = function (id, game, type, startx, starty, value) {
 	this.item.type = 'food';
 	this.item.id = id;
 	
-	this.game.physics.p2.enableBody(this.item, false);
+	this.game.physics.p2.enableBody(this.item, true);
+	this.item.body.clearShapes();
+	this.item.body_size = 70; 
+	this.item.body_offsetX = 0;
+	this.item.body_offsetY = -70; 
+	this.item.body.addCircle(shield.body_size * scale_ratio, 0, shield.body_offsetY * scale_ratio);
+	
+	this.item.body_type = "circle";
 	this.item.body.data.gravityScale = 0;
 
 	this.item.body.data.shapes[0].sensor = true;
+	scale_sprites.push(this.item);
+
 }
 
 

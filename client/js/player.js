@@ -1,5 +1,7 @@
 var player_properties; 
 
+
+
 var set_player = function () {
 	//in game properties 
 	this.speed = 300; 
@@ -179,7 +181,7 @@ var set_player = function () {
 		
 		this.sword_height += 10; 
 		this.destroy_sword(); 
-		this.draw_sword(this.sword_width, this.sword_height);
+		this.draw_sword(this.sword_width, this.sword_height, player_properties.pierce);
 		
 		
 		if (this.dashspeed <= 2000) {
@@ -212,18 +214,20 @@ var set_player = function () {
 		handle.beginFill(this.handle_color);
 		handle.lineStyle(2, 0xffd900, 1);
 		handle.anchor.setTo(0.5,0.5);
-		
+		handle.scale.set(scale_ratio); 
 
 		handle.moveTo(0, 15);
 		handle.lineTo(0, 25);
 		handle.lineTo(-50, 25);
 		handle.lineTo(-50, 15);
 		handle.endFill();
-		
+	
 		game.physics.p2.enableBody(handle, false);
 		
 		handle.pivot.y = -30;
 		handle.pivot.x = 30;
+		
+		scale_sprites.push(handle);
 		player_properties.items_p.push(handle);
 	}
 	
@@ -232,36 +236,42 @@ var set_player = function () {
 	
 		sword = game.add.graphics(player.body.x, player.body.y);
 		sword.name = "sword"; 
+		sword.body_type = "json";
 
 		// set a fill and line style
 		if (pierce) {
 			sword.beginFill(this.sword_color);
 			sword.lineStyle(4, 0xffd900, 1);
 			sword.anchor.setTo(0.5,0.5);
+				
+
 		} else {
 			sword.beginFill(this.sword_color);
 			sword.lineStyle(1, 0xffd900, 1);
-			sword.anchor.setTo(0.5,0.5);
+				
 		}
+	
+		
 			
 		// draw a shape
-		game.physics.p2.enableBody(sword, false);
+		game.physics.p2.enableBody(sword, true);
+		sword.body.clearShapes();
 		sword.moveTo(0,0);
 		sword.lineTo(height, width/2);
 		sword.lineTo(0, width);
 		sword.endFill();
-		sword.body.clearShapes();
+		
 		
 		//have to add the pivot's y to the offset y of addrectangle
 		
 		this.offset_x = 30; 
-		this.offset_y = -30; 
+		this.offset_y = -30;
 	
-		this.data = {
+		var physics_data = {
 			sword: [
 						{
-							"density": 2, "friction": 0, "bounce": 0, 
-							"filter": { "categoryBits": 1, "maskBits": 65535 },
+							//"density": 2, "friction": 0, "bounce": 0, 
+							//"filter": { "categoryBits": 1, "maskBits": 65535 },
 							"shape": [   0 - this.offset_x , 0 - this.offset_y, 
 							height - this.offset_x,  width/2 - this.offset_y  ,  0 - this.offset_x, width - this.offset_y  ,
 							0 - this.offset_x, 0 - this.offset_y ]
@@ -269,27 +279,38 @@ var set_player = function () {
 				]
 		}
 		
-		sword.body.loadPolygon(null, this.data.sword);
+		sword.physics_data = physics_data; 
+		var new_data = resizePolygon(physics_data, "sword", scale_ratio); 
 		
+
+		sword.body.loadPolygon(null, new_data.sword);
 		
-		//planeShape = new polygons();
-		sword.pivot.y = -30;
-		sword.pivot.x = 30;
 		
 			
 		sword.body.data.gravityScale = 0;
 		//sword.scale.setTo(0.4,0.4);
 		sword.body.angle = player.angle; 
 		sword.body.data.shapes[0].sensor = true;
-		
+		sword.pivot.y = -30;
+		sword.pivot.x = 30;
+			//scale sprite
+		sword.scale.set(scale_ratio);
 		//collision function on sword
 		sword.body.onBeginContact.add(collide_handle, this);	
 		sword.body.onEndContact.add(collide_exit, this);
+		scale_sprites.push(sword); 
 		player_properties.items_p.push(sword);
-		
 	}
 	
 	this.destroy_sword = function () {
+		//destroy it from player's item equipped
+		//destroy it from player's scale sprite list 
+		for (var i = 0; i < scale_sprites.length; i++) {
+			if (scale_sprites[i].name === "sord") {
+				scale_sprites.splice(i, 1); 
+			}
+		}
+		
 		for (var k = 0; k < this.items_p.length; k++) {
 			if (this.items_p[k].name === "sword") {
 				this.items_p[k].destroy(true,false);
@@ -301,26 +322,35 @@ var set_player = function () {
 	this.draw_shield = function () {
 		shield = game.add.graphics(player.body.x, player.body.y);
 		shield.name = "shield"; 
+		shield.body_type = "circle"; 
 
 		// set a fill and line style
 		shield.beginFill(this.shield_color);
 		shield.lineStyle(2, 0xffd900, 1);
-		shield.drawCircle(0, -70, 130);
+		shield.drawCircle(0, -70, 140);
 		shield.endFill();
-		
 		shield.anchor.setTo(0.5,0.5);
+
+		//scale the shield 
+		shield.scale.set(scale_ratio); 
+		shield.scale_value = scale_ratio; 
 			
 		// draw a shape
-		game.physics.p2.enableBody(shield, false);
+		game.physics.p2.enableBody(shield, true);
 		shield.body.clearShapes();
-		//have to add the pivot's y to the offset y of addrectangle
-		shield.body.addCircle(70, 0, -70);
+		shield.body_size = 70; 
+		shield.body_offsetX = 0;
+		shield.body_offsetY = -70; 
+		shield.body.addCircle(shield.body_size * scale_ratio, 0, shield.body_offsetY * scale_ratio);
+		
+
 			
 		shield.body.data.gravityScale = 0;
-		//sword.scale.setTo(0.4,0.4);
 		shield.body.angle = player.angle; 
-		shield.body.data.shapes[0].sensor = true;	
+		shield.body.data.shapes[0].sensor = true;
+		scale_sprites.push(shield); 
 		player_properties.items_p.push(shield);
+		console.log(scale_sprites);
 	}
 	
 	
@@ -400,6 +430,7 @@ var set_player = function () {
 	
 	this.first_place = function () {
 		//player becomes first place for the first time. 
+		/*
 		if (this.first === false) {
 			this.first = true; 
 			this.crown = game.add.sprite(0, 30, 'crown');
@@ -407,13 +438,14 @@ var set_player = function () {
 			this.crown.scale.setTo(0.1, 0.1);
 			if (this.item_lst) {
 				this.item_lst.push(this.crown);
+				this.scale_sprites.push(this.crown); 
 			}
 			this.display_text("Top of the leader board");
 		//player was already first place. 
 		} else {
 			this.crown.x = player.x; 
 			this.crown.y = player.y - 30;
-		}
+		}*/
 	}
 	
 	this.stun_immunepickup = function () {

@@ -1,26 +1,34 @@
-function experience_bar() {
-	player_properties.barre1_x = gameProperties.screenWidth/2;
-	player_properties.barre1_y = gameProperties.screenHeight - 85;
-
+function experience_bar(gameX, gameY, width) {
+	var barre1_x = gameX;
+	var barre1_y = gameY; 
 
 	player_properties.expvalue = 0;
 	player_properties.expvalue = player_properties.expvalue;
-	player_properties.myHealthBar = new HealthBar(game, {x: player_properties.barre1_x, y: player_properties.barre1_y, width: 400});
+	player_properties.myHealthBar = new HealthBar(game, {x: barre1_x * 0.5, y: barre1_y * 0.9, width: width * scale_ratio});
 	player_properties.myHealthBar.animationDuration = 500; 
 	player_properties.myHealthBar.setPercent(0); 
 	player_properties.myHealthBar.setFixedToCamera(true);
+	player_properties.myHealthBar.body_type = "experiencebar";
+
+	
+	scale_sprites.push(player_properties.myHealthBar);
 }
 
 
 
 function gui_interface () {
-	score_board = game.add.sprite(gameProperties.screenWidth - 150, 150, 'scoreboard');
+	score_board = game.add.sprite(gameProperties.screenWidth * 0.9, gameProperties.screenHeight * 0.1, 'scoreboard');
+	console.log(score_board);
+	score_board.posX_multiple = 0.9; 
+	score_board.posY_multiple = 0.1; 
 	score_board.alpha = 0.8;
 	score_board.anchor.setTo(0.5, 0.5);
-	score_board.scale.setTo(1, 1.2);
+	score_board.scale.setTo(scale_ratio, scale_ratio);
 	score_board.fixedToCamera = true;
+	score_board.body_type = "gui"; 
+	scale_sprites.push(score_board);
 	
-	experience_bar(); 
+	experience_bar(gameProperties.screenWidth, gameProperties.screenHeight, 400); 
 	
 	
 	var style = { font: "13px Press Start 2P", fill: "black", align: "center"};
