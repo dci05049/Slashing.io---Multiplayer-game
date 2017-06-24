@@ -49,6 +49,29 @@ function join_game (data) {
 	game_config.username = data.username; 
 	game_config.room_id = data.room_id; 
 	
+	this.colorbase = color_base[getRndInteger(0,2)];  
+	
+	game_config.body_color = randomColor({
+		luminosity: 'dark',
+		hue: this.colorbase
+	}); 
+	game_config.body_color = game_config.body_color.replace("#", "0x");
+	
+	game_config.shield_color = randomColor({
+		luminosity: 'dark',
+		hue: this.colorbase
+	}); 
+	game_config.shield_color = game_config.shield_color.replace("#", "0x");
+	
+	
+	game_config.sword_color = randomColor({
+		luminosity: 'dark',
+		hue: this.colorbase
+	}); 
+	game_config.sword_color = game_config.sword_color.replace("#", "0x");
+	
+	
+	
 	game.state.start(
         'main',
         slideOut,
@@ -96,13 +119,33 @@ function resizePolygon(json_physics, shapeKey, scale){
 
 }
 
-function convertPosition (posX, posY, newPosx, newPosy) {
-	var multiple;
-}
 
 function resizeBody (gameObject, scale, body_type) {
 	var body_scale = gameObject.scale_value; 	
 	
+	if (body_type === "gui") {
+		/*
+		gameObject.fixedToCamera = false;
+		console.log(canvas_width);
+		console.log(gameProperties.screenWidth);
+		gameObject.x = gameProperties.screenWidth * gameObject.posX_multiple;
+		gameObject.y = gameProperties.screenHeight * gameObject.posY_multiple;
+		gameObject.fixedToCamera = true;
+		*/
+		var pos_x = gameProperties.screenWidth * gameObject.posX_multiple; 
+		var pos_y = gameProperties.screenHeight * gameObject.posY_multiple;
+		gameObject.cameraOffset.setTo(pos_x,pos_y);
+		console.log('hi');
+		
+	} else if (body_type === "none") {
+		var percent_x = gameObject.body.x/gameProperties.maxWidth; 
+		var percent_y = gameObject.body.y/gameProperties.maxHeight;
+
+		gameObject.body.x = percent_x * gameProperties.gameWidth; 
+		gameObject.body.y = percent_y * gameProperties.gameHeight; 
+	}
+	
+	//if the gameobject has no body, return 
 	if (!gameObject.body) {
 		return;
 	}
@@ -127,39 +170,19 @@ function resizeBody (gameObject, scale, body_type) {
 		var multiple = scale_ratio / prev_scaleratio; 
 	
 		gameObject.body.data.shapes[0].sensor = true;
-	} else if (body_type === "json") {
-		player_properties.destroy_sword();
-		player_properties.draw_sword(player_properties.sword_width, player_properties.sword_height, player_properties.pierce);
-		
-	} else if (body_type === "gui") {
-		/*
-		gameObject.fixedToCamera = false;
-		console.log(canvas_width);
-		console.log(gameProperties.screenWidth);
-		gameObject.x = gameProperties.screenWidth * gameObject.posX_multiple;
-		gameObject.y = gameProperties.screenHeight * gameObject.posY_multiple;
-		gameObject.fixedToCamera = true;
-		*/
-		var pos_x = gameProperties.screenWidth * gameObject.posX_multiple; 
-		var pos_y = gameProperties.screenHeight * gameObject.posY_multiple;
-		gameObject.cameraOffset.setTo(pos_x,pos_y);
-	}	
-	
-	/*else if (body_type === "experiencebar") {
-		gameObject.kill(); 
-		experience_bar(gameProperties.screenWidth, gameProperties.screenHeight, 400);
-	}*/
+	} 
 
 
 }
 
 
-function resizegameObject (sprite, scale, physics) {
-	if (sprite.body_type != "experiencebar") {
-		sprite.scale.set(scale);
+
+function resizegameObject (gameObject, scale, physics) {
+	if (gameObject.body_type != "experiencebar") {
+		gameObject.scale.set(scale);
 	}
 	
-	resizeBody(sprite, scale, sprite.body_type); 
+	resizeBody(gameObject, scale, gameObject.body_type);
 }
 
 
@@ -183,15 +206,6 @@ window.onresize = function(event) {
 			scale_ratio = newcanv_width / window.screen.availWidth;
 		}
 		
-		/*
-		prev_scaleratio = scale_ratio; 
-		
-		if (aspect_ratio < 1) {
-			scale_ratio = Math.max((canvas_width / window.screen.availWidth),(canvas_height/window.screen.availWidth));
-
-		} else {
-			scale_ratio = canvas_height / window.screen.availWidth;
-		}*/
 		
 		gameProperties.maxHeight = gameProperties.gameWidth; 
 		gameProperties.maxWidth = gameProperties.gameHeight; 
@@ -202,11 +216,27 @@ window.onresize = function(event) {
 		gameProperties.gameWidth = 4000 * scale_ratio; 
 		gameProperties.gameHeight = 4000 * scale_ratio; 
 		game.world.setBounds(0, 0, gameProperties.gameWidth, gameProperties.gameHeight, false, false, false, false);
+		
 		var len_sprite = scale_sprites.length;
-
+		var len_enemies = enemies.length;
 	
+		
+		//set the experience bar
+		player_properties.myHealthBar.kill(); 
+		experience_bar(gameProperties.screenWidth, gameProperties.screenHeight, 400);
+		
+		
+		// scaling other gameobjects; 
 		for (var n = 0; n < len_sprite; n++) {
 			resizegameObject(scale_sprites[n], scale_ratio);
+		}
+		
+		//scale main player sprites 
+		player_properties.scaleonresize(scale_ratio);
+		
+		//scaling enemy sprites; 
+		for (var k = 0; k < len_enemies; k++) {
+			enemies[k].scaleonresize(scale_ratio);
 		}
 
 };

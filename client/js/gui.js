@@ -2,16 +2,12 @@ function experience_bar(gameX, gameY, width) {
 	var barre1_x = gameX;
 	var barre1_y = gameY; 
 
-	player_properties.expvalue = 0;
-	player_properties.expvalue = player_properties.expvalue;
 	player_properties.myHealthBar = new HealthBar(game, {x: barre1_x * 0.5, y: barre1_y * 0.9, width: width * scale_ratio});
 	player_properties.myHealthBar.animationDuration = 500; 
-	player_properties.myHealthBar.setPercent(0); 
+	var exp_percent = (player_properties.expvalue/player_properties.exp_max) * 100; 
+    player_properties.myHealthBar.setPercent(exp_percent);
 	player_properties.myHealthBar.setFixedToCamera(true);
-	player_properties.myHealthBar.body_type = "experiencebar";
-
-	
-	scale_sprites.push(player_properties.myHealthBar);
+	player_properties.myHealthBar.type = "experiencebar";
 }
 
 

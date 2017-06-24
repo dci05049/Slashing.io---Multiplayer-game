@@ -101,7 +101,6 @@ function heartbeat () {
 	}
 }
 
-
 function addfood(n, room) {
 	var new_food = []; 
 	
@@ -117,7 +116,6 @@ function addfood(n, room) {
 		io.sockets.in(room.room_id).emit("item_update", foodentity); 
 	}
 }
-
 
 function addspeed(n, room) {
 	var new_speed = []; 
@@ -193,6 +191,9 @@ function onNewplayer (data) {
 	newPlayer.id = this.id;	
 	newPlayer.username = data.username;
 	newPlayer.room_id = data.room_id; 
+	newPlayer.body_color = data.body_color; 
+	newPlayer.sword_color = data.sword_color; 
+	newPlayer.shield_color = data.shield_color;
 	
 	
 	var room = room_List[newPlayer.room_id]; 
@@ -210,10 +211,16 @@ function onNewplayer (data) {
 		x: newPlayer.x,
 		y: newPlayer.y,
 		score: newPlayer.score, 
-		angle: newPlayer.angle
+		angle: newPlayer.angle,
+		body_color: newPlayer.body_color,
+		sword_color: newPlayer.sword_color,
+		shield_color: newPlayer.shield_color
+		
 	}; 
 	
 	this.broadcast.to(newPlayer.room_id).emit('new_player', current_info);
+	
+	
 	
 	for (i = 0; i < room.player_lst.length; i++) {
 		existingPlayer = room.player_lst[i]
@@ -223,7 +230,10 @@ function onNewplayer (data) {
 			x: existingPlayer.x,
 			y: existingPlayer.y, 
 			score: existingPlayer.score,
-			angle: existingPlayer.angle,			
+			angle: existingPlayer.angle,	
+			body_color: existingPlayer.body_color,
+			sword_color: existingPlayer.sword_color,
+			shield_color: existingPlayer.shield_color			
 		};
 		this.emit('new_player', player_info);
 	}
@@ -252,7 +262,7 @@ function onNewplayer (data) {
 	if (room.top_scorer.length < 10) {
 		room.top_scorer.push(newPlayer); 
 	}
-	
+
 	room.player_lst.push(newPlayer); 
 }
 
@@ -456,6 +466,7 @@ function onitemPicked (data) {
 	//the room that the item is in;
 	var room = this.room; 
 	
+	console.log(data.id);
 	if (data.type === 'speed') {
 		var object = find_item(data.id, room.speed_pickup.length, room.speed_pickup); 
 		room.speed_pickup.splice(room.speed_pickup.indexOf(object), 1);
@@ -533,18 +544,38 @@ function create_Room() {
 	var max_playernum = find_maxPlayer(); 
 	new_game.max_num = max_playernum; 
 	
-	var new_speed;
-	var new_stun;
-	var new_pierce;
 	
-	addspeed(new_game.speed_num, new_game); 
-	addstun(new_game.stun_num, new_game);
-	addpierce(new_game.pierce_num, new_game); 
+	//intialize the food list with random foods on room creation 
+	for (var i = 0; i < new_game.food_pickupnum; i++) {
+		var unique_id = unique.v4(); 
+		var foodentity = new food(new_game.canvas_width, new_game.canvas_height, 'food', unique_id);
+		new_game.food_pickup.push(foodentity); 
+	}
+	//intialize the items such as speed, pierce, and stun pickup lists on room creation 
+	for (var i = 0; i < new_game.speed_pickupnum; i++) {
+		var unique_id = unique.v4(); 
+		var speedentity = new speed(new_game.canvas_width, new_game.canvas_height, 'speed', unique_id);
+		new_game.speed_pickup.push(speedentity); 
+	}
+	
+	for (var i = 0; i < new_game.stun_pickupnum; i++) {
+		var unique_id = unique.v4(); 
+		var stunentity = new stun(new_game.canvas_width, new_game.canvas_height, 'stun', unique_id);
+		new_game.stun_pickup.push(stunentity); 
+	}
+	
+	for (var i = 0; i < new_game.pierce_pickupnum; i++) {
+		var unique_id = unique.v4(); 
+		var pierceentity = new stun(new_game.canvas_width, new_game.canvas_height, 'pierce', unique_id);
+		new_game.pierce_pickup.push(pierceentity);   
+	}
 	
 	room_List[new_roomid] = new_game; 
 	
 	avail_roomlist.push(new_roomid);
 }
+
+
 
 function find_maxPlayer() {
 	return 10;

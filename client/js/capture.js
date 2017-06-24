@@ -49,7 +49,11 @@ var stun_pickup = [];
 var pierce_pickup = [];
 var food_pickup = [];
 var food_color = [];
+
+//gameobjects that can be rescaled; 
 var scale_sprites = []; 
+//gameobjects that has to be destroyed and recreated; 
+var recreate_objects = [];
 
 
 
@@ -71,7 +75,6 @@ function dash_attack () {
 	
 	if (!player_properties.killed && player_properties.canattack && !player_properties.stunned) {
 		if (player_properties.in_cols_shield.length >= 1 && !player_properties.pierce) {
-			console.log(player_properties.in_cols_shield);
 			var enemy_id = player_properties.in_cols_shield[0]; 
 
 			socket.emit('player_stunned', {player_id: socket.id, enemy_id: enemy_id});
@@ -93,6 +96,7 @@ function dash_attack () {
 
 			
 			for (var i = 0; i < player_properties.in_cols.length; i++) {
+				console.log(player_properties.in_cols);
 				if (!player_properties.stunned && player_properties.player_attack && player_properties.in_cols_shield < 1) {
 					//emit message of the position of the player 
 					socket.emit('player_attack', {player_id: socket.id, enemy_id: player_properties.in_cols[i]});
@@ -109,9 +113,11 @@ function dash_attack () {
 function onMoveplayer (data) {
 	
 	if (gameProperties.in_game) {
+	
+		
 		var movePlayer = findplayerbyid (data.id); 
 		if (!movePlayer) {
-			console.log('Player not found: ', data.id)
+		
 			return
 		}
 				
@@ -159,11 +165,10 @@ function onMoveplayer (data) {
 	}
 }
 
-
 function onitemUpdate (data) {
 	var type = data.type;
 	switch (type) {
-		/*
+		
 		case "speed": {
 			speed_pickup.push(new speed_object(data.id, game, type, data.x, data.y)); 
 			break;
@@ -177,7 +182,6 @@ function onitemUpdate (data) {
 			break;
 		}
 		
-		*/
 		case "food": {
 			food_pickup.push(new food_object(data.id, game, type, data.x, data.y)); 
 			break;
@@ -192,8 +196,12 @@ function onSocketConnected () {
 	var username = game_config.username;
 	var socketid = game_config.socketid; 
 	var room_id = game_config.room_id; 
+	var body_color = game_config.body_color; 
+	var sword_color = game_config.sword_color; 
+	var shield_color = game_config.shield_color;
 	
-	socket.emit('new_player', {username: username, id: socketid, room_id: room_id, x: 0, y: 0, angle:player.angle});
+	socket.emit('new_player', {username: username, id: socketid, room_id: room_id, x: 0,
+	y: 0, angle:player.angle, body_color: body_color, sword_color: sword_color, shield_color: shield_color});
 }
 
 function onSocketDisconnect () {
@@ -309,7 +317,11 @@ function onitemremove (data) {
 			break;
 	}
 
-	
+	if (!removeItem) {
+		console.log(data.id);
+		console.log("could not find item");
+	}
+
 	removeItem.item.destroy(true,false);
 	
 }
@@ -406,7 +418,8 @@ mainState.prototype = {
 			socket.on('new_player', function(info) {
 				var check_duplicate = findplayerbyid(info.id);
 				if (!check_duplicate) {
-					var newPlayer = new remote_player(info.id, info.username, game, player, info.x, info.y, info.angle);
+					var newPlayer = new remote_player(info.id, info.username, game, player, info.x, info.y,
+					info.angle, info.body_color, info.sword_color, info.shield_color);
 					enemies.push(newPlayer); 
 				} else {
 					return; 
@@ -426,10 +439,9 @@ mainState.prototype = {
 		player = game.add.graphics(0, 0);
 		player.scale.set(scale_ratio);
 		player.name = player_properties.player_id; 
-		player.jason = "player";
 
 		// set a fill and line style
-		player.beginFill(0xffd900);
+		player.beginFill(game_config.body_color);
 		player.lineStyle(2, 0xffd900, 1);
 		player.drawCircle(0, 0, 140);
 		player.endFill();
@@ -447,7 +459,7 @@ mainState.prototype = {
 		player.body.addCircle(player.body_size * scale_ratio, 0 , 0); 
 		player.body.data.shapes[0].sensor = true;
 		player.body.onBeginContact.add(player_coll, this); 
-		scale_sprites.push(player); 
+		player_properties.all_sprites.push(player); 
 		
 		
 		/*

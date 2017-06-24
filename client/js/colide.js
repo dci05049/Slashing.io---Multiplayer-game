@@ -50,7 +50,7 @@ function collide_handle (body, bodyB, shapeA, shapeB, equation) {
 		var current_id = player_properties.player_id;  
 		// check to see if the player sword collied with the body of enemy; make sure the sword does not hit the player body itself
 		
-		if (body.sprite.key === 'shield') {
+		if (body.sprite.key === "shield") {
 			player_properties.in_cols_shield.push(body.sprite.name);
 			
 			// if the kill happens right after hits,  
@@ -75,7 +75,7 @@ function collide_handle (body, bodyB, shapeA, shapeB, equation) {
 				return;
 			}
 			
-		} else if (body.sprite.key === 'arrow' && current_id !== body.sprite.name) {
+		} else if (body.sprite.type === "body" && current_id !== body.sprite.name) {
 			player_properties.in_cols.push(body.sprite.name); 
 			// if the player is stunned, before the player hits, don't proceed with attack;
 			var stun_recent = false;
@@ -109,7 +109,7 @@ function collide_exit (body, bodyB, shapeA, shapeB, equation) {
 		var col_id = body.sprite.name;
 		var current_id = player_properties.player_id; 
 	
-		if (body.sprite.key === 'arrow') {
+		if (body.sprite.type === "body") {
 			// get rid of all collisions between sword and enemy body 
 			for (var i = 0; i < player_properties.in_cols.length; i++) {
 				if (player_properties.in_cols[i] === col_id) {
