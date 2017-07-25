@@ -7,17 +7,18 @@ var speed_object = function (id, game, type, startx, starty, value) {
 	this.powerup = value;
 	
 	this.item = game.add.sprite(this.posx * scale_ratio, this.posy * scale_ratio, 'speedpickup'); 
+	//500 is there because it's the default dimension of an image 
+	this.item.scale_offset = (gameProperties.availMax * 0.08)/500;
 	this.item.type = 'speed';
 	this.item.id = id;
-	
-	this.item.scale_offset = -0.9;
-	this.item.scale.set(scale_ratio + this.item.scale_offset);
+
+	this.item.scale.set(scale_ratio * this.item.scale_offset);
 	this.game.physics.p2.enableBody(this.item, true);
 	this.item.body.clearShapes();
 	this.item.body_size = 250; 
 	this.item.body_offsetX = 0;
 	this.item.body_offsetY = 0; 
-	this.item.body.addCircle(this.item.body_size * (scale_ratio + this.item.scale_offset), 0, this.item.body_offsetY * (scale_ratio + this.item.scale_offset));
+	this.item.body.addCircle(this.item.body_size * scale_ratio * this.item.scale_offset, 0, 0);
 	
 	this.item.body_type = "circle";
 	
@@ -37,15 +38,14 @@ var stun_object = function (id, game, type, startx, starty, value) {
 	this.item.type = 'stun';
 	this.item.id = id;
 	
-	this.item.scale_offset = -0.9;
-	this.item.scale.set(scale_ratio + this.item.scale_offset);
-	
+	this.item.scale_offset = (gameProperties.availMax * 0.08)/500;
+	this.item.scale.set(scale_ratio * this.item.scale_offset);
 	this.game.physics.p2.enableBody(this.item, true);
 	this.item.body.clearShapes();
 	this.item.body_size = 250; 
 	this.item.body_offsetX = 0;
 	this.item.body_offsetY = 0; 
-	this.item.body.addCircle(this.item.body_size * (scale_ratio + this.item.scale_offset), 0, this.item.body_offsetY * (scale_ratio + this.item.scale_offset));
+	this.item.body.addCircle(this.item.body_size * scale_ratio * this.item.scale_offset, 0, 0);
 	this.item.body_type = "circle";
 	
 	this.item.body.data.shapes[0].sensor = true;
@@ -65,15 +65,14 @@ var pierce_object = function (id, game, type, startx, starty, value) {
 	this.item.type = 'pierce';
 	this.item.id = id;
 	
-	this.item.scale_offset = -0.9;
-	this.item.scale.set(scale_ratio + this.item.scale_offset);
-	
+	this.item.scale_offset = (gameProperties.availMax * 0.08)/500;
+	this.item.scale.set(scale_ratio * this.item.scale_offset);
 	this.game.physics.p2.enableBody(this.item, true);
 	this.item.body.clearShapes();
 	this.item.body_size = 250; 
 	this.item.body_offsetX = 0;
 	this.item.body_offsetY = 0; 
-	this.item.body.addCircle(this.item.body_size * (scale_ratio + this.item.scale_offset), 0, this.item.body_offsetY * (scale_ratio + this.item.scale_offset));
+	this.item.body.addCircle(this.item.body_size * scale_ratio * this.item.scale_offset, 0, 0);
 	
 	this.item.body_type = "circle";
 	this.item.body.data.shapes[0].sensor = true;

@@ -1,6 +1,6 @@
 
 canvas_width = window.innerWidth * window.devicePixelRatio;
-		canvas_height = window.innerHeight * window.devicePixelRatio;
+canvas_height = window.innerHeight * window.devicePixelRatio;
 
 aspect_ratio = window.screen.availWidth / window.screen.availHeight;
 new_ratio = canvas_width/canvas_height; 
@@ -19,10 +19,11 @@ game = new Phaser.Game(canvas_width,canvas_height, Phaser.CANVAS, 'gameDiv');
 
 
 
-
 var gameProperties = {
     screenWidth: canvas_width,
     screenHeight: canvas_height,
+	availWidth: window.screen.availwidth,
+	availHeight: window.screen.availHeight,
 	maxHeight: canvas_height, 
 	maxWidth: canvas_width, 
 	gameWidth: 4000 * scale_ratio,
@@ -33,6 +34,14 @@ var gameProperties = {
 	connect: false, 
 };
 
+console.log(scale_ratio);
+
+// setting the availMax
+if (gameProperties.availWidth > gameProperties.availHeight) {
+	gameProperties.availMax = gameProperties.availWidth; 
+} else {
+	gameProperties.availMax = gameProperties.availHeight;
+}
 
 
 
@@ -122,6 +131,11 @@ function resizePolygon(json_physics, shapeKey, scale){
 
 function resizeBody (gameObject, scale, body_type) {
 	var body_scale = gameObject.scale_value; 	
+	var scale_offset = 1;
+	if (gameObject.scale_offset) {
+		scale_offset = gameObject.scale_offset; 
+	}
+	
 	
 	if (body_type === "gui") {
 		/*
@@ -151,13 +165,13 @@ function resizeBody (gameObject, scale, body_type) {
 	}
 	
 	if (body_type === "circle") {
-		var new_bodySize = gameObject.body_size * scale_ratio;
+		var new_bodySize = gameObject.body_size * scale_ratio * scale_offset;
 		gameObject.body.clearShapes();
-		
-		var body_offsetX = gameObject.body_offsetX * scale_ratio; 
-		var body_offsetY = gameObject.body_offsetY * scale_ratio; 
-		gameObject.body.addCircle(new_bodySize, body_offsetX , body_offsetY);
 	
+		
+		var body_offsetX = gameObject.body_offsetX * scale_ratio * scale_offset; 
+		var body_offsetY = gameObject.body_offsetY * scale_ratio * scale_offset; 
+		gameObject.body.addCircle(new_bodySize, body_offsetX, body_offsetY);
 		var percent_x = gameObject.body.x/gameProperties.maxWidth; 
 		var percent_y = gameObject.body.y/gameProperties.maxHeight;
 
@@ -165,6 +179,7 @@ function resizeBody (gameObject, scale, body_type) {
 
 		gameObject.body.x = percent_x * gameProperties.gameWidth; 
 		gameObject.body.y = percent_y * gameProperties.gameHeight; 
+		
 		
 		
 		var multiple = scale_ratio / prev_scaleratio; 
@@ -175,11 +190,15 @@ function resizeBody (gameObject, scale, body_type) {
 
 }
 
-
-
+	
 function resizegameObject (gameObject, scale, physics) {
+	var scale_offset = 1;
+	if (gameObject.scale_offset) {
+		scale_offset = gameObject.scale_offset; 
+	}
+	
 	if (gameObject.body_type != "experiencebar") {
-		gameObject.scale.set(scale);
+		gameObject.scale.set(scale * scale_offset);
 	}
 	
 	resizeBody(gameObject, scale, gameObject.body_type);
@@ -191,7 +210,9 @@ var timeOut = null;
 
 window.onresize = function(event) {
 	
-
+		
+		gameProperties.resizing = true; 
+		
 		canvas_width = window.innerWidth * window.devicePixelRatio;
 		canvas_height = window.innerHeight * window.devicePixelRatio;
 
@@ -205,7 +226,8 @@ window.onresize = function(event) {
 			newcanv_width = canvas_height * aspect_ratio; 
 			scale_ratio = newcanv_width / window.screen.availWidth;
 		}
-		
+
+		console.log(scale_ratio);
 		
 		gameProperties.maxHeight = gameProperties.gameWidth; 
 		gameProperties.maxWidth = gameProperties.gameHeight; 
@@ -238,6 +260,8 @@ window.onresize = function(event) {
 		for (var k = 0; k < len_enemies; k++) {
 			enemies[k].scaleonresize(scale_ratio);
 		}
+		
+setTimeout(function() {gameProperties.resizing = false}, 3000); 
 
 };
 

@@ -13,10 +13,10 @@ function experience_bar(gameX, gameY, width) {
 
 
 function gui_interface () {
-	score_board = game.add.sprite(gameProperties.screenWidth * 0.9, gameProperties.screenHeight * 0.1, 'scoreboard');
+	score_board = game.add.sprite(gameProperties.screenWidth * 0.9, gameProperties.screenHeight * 0.17, 'scoreboard');
 	console.log(score_board);
 	score_board.posX_multiple = 0.9; 
-	score_board.posY_multiple = 0.1; 
+	score_board.posY_multiple = 0.17; 
 	score_board.alpha = 0.8;
 	score_board.anchor.setTo(0.5, 0.5);
 	score_board.scale.setTo(scale_ratio, scale_ratio);
@@ -66,6 +66,7 @@ function lbupdate (data) {
 	var board_string = ""; 
 	var count = 0; 
 	var num_topscorer = data.length; 
+
 	
 	if (data) {
 		//username, playeproperties and there is at least one element in the top scorer list 
